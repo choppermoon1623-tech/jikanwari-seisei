@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中学校 週時間割 配置アプリ</title>
+<style>
+  :root{
+    /* neutrals */
+    --bg:#f3f5f8; --bg2:#fafbfc; --card:#ffffff; --surface:#f8fafc;
+    --bd:#d8dee8; --bd2:#e8edf3; --ink:#17202c; --ink2:#526071; --ink3:#8792a1;
+    /* accents */
+    --acc:#2f6fed; --acc-d:#1f56c7; --acc-soft:#edf4ff; --acc-soft2:#e7f6f3; --ring:rgba(47,111,237,.28);
+    --teal:#0f766e; --teal-soft:#e7f6f3;
+    /* semantics */
+    --lock:#fff4d7; --lock-bd:#edc76c; --lock-ink:#9a6500;
+    --fixed:#eef4ff; --fixed-bd:#bed3ff;
+    --bad:#ffe7e8; --bad-bd:#efadb5; --bad-ink:#b5293b;
+    --warn:#fff5dc; --warn-bd:#e8cc83;
+    --disabled:#edf0f4; --ok:#e7f7ee; --ok-ink:#157046;
+    --r:8px; --r2:7px;
+    --sh-sm:0 1px 2px rgba(15,23,42,.05);
+    --sh-md:0 8px 26px rgba(15,23,42,.09);
+    --sh-lg:0 24px 70px rgba(15,23,42,.22);
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  body{font-family:"Inter","Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+    margin:0;background:linear-gradient(180deg,#f8fafc 0%,#eef2f7 58%,#e9eef5 100%);background-attachment:fixed;color:var(--ink);font-size:13px;line-height:1.5;}
+  ::selection{background:var(--ring);}
+  ::-webkit-scrollbar{height:11px;width:11px;}
+  ::-webkit-scrollbar-thumb{background:#c4cbd6;border-radius:8px;border:3px solid transparent;background-clip:content-box;}
+  ::-webkit-scrollbar-thumb:hover{background:#aab3c0;background-clip:content-box;}
+
+  header{background:#111827;color:#fff;padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    position:sticky;top:0;z-index:50;box-shadow:0 10px 28px rgba(15,23,42,.24);border-bottom:1px solid rgba(255,255,255,.08);}
+  header h1{font-size:15px;margin:0;font-weight:800;letter-spacing:0;white-space:nowrap;display:flex;align-items:center;gap:8px;}
+  header h1::before{content:"";width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#65d6c2,#2f6fed);box-shadow:inset 0 0 0 1px rgba(255,255,255,.28);}
+  header .title-input{font-size:13px;padding:7px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.16);width:310px;
+    background:rgba(255,255,255,.09);color:#fff;transition:.18s;box-shadow:inset 0 1px 0 rgba(255,255,255,.05);}
+  header .title-input::placeholder{color:rgba(255,255,255,.46);}
+  header .title-input:focus{outline:none;background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.36);box-shadow:0 0 0 3px rgba(47,111,237,.28);}
+  header .spacer{flex:1;}
+
+  button{font-family:inherit;font-size:12px;font-weight:700;padding:7px 13px;border:1px solid var(--bd);background:#fff;color:var(--ink);
+    border-radius:var(--r2);cursor:pointer;transition:.16s ease;box-shadow:var(--sh-sm);}
+  button:hover{background:#f7f9fc;border-color:#c5cedb;transform:translateY(-1px);}
+  button:active{transform:translateY(0);}
+  button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--ring);}
+  button.primary{background:linear-gradient(135deg,var(--acc),var(--teal));color:#fff;border-color:transparent;box-shadow:0 7px 18px rgba(47,111,237,.28);}
+  button.primary:hover{filter:brightness(1.04);box-shadow:0 10px 22px rgba(47,111,237,.34);}
+  button.ghost{background:rgba(255,255,255,.07);color:#f3f6fb;border-color:rgba(255,255,255,.16);box-shadow:none;}
+  button.ghost:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.30);}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;filter:none;}
+
+  .wrap{padding:18px 18px 72px;max-width:1340px;margin:0 auto;}
+  .panel{background:rgba(255,255,255,.96);border:1px solid var(--bd2);border-radius:var(--r);margin-bottom:16px;box-shadow:var(--sh-md);overflow:hidden;}
+  .panel>h2{font-size:13px;font-weight:800;margin:0;padding:13px 16px;background:#fff;
+    display:flex;align-items:center;gap:9px;cursor:pointer;color:var(--ink);user-select:none;transition:.15s;border-left:4px solid var(--acc);}
+  .panel>h2:hover{background:#f8fafc;}
+  .panel:not(.collapsed)>h2{border-bottom:1px solid var(--bd2);}
+  .panel>h2 .chev{transition:.18s;font-size:10px;color:var(--acc);}
+  .panel.collapsed>h2 .chev{transform:rotate(-90deg);}
+  .panel.collapsed>.body{display:none;}
+  .panel>.body{padding:16px;}
+
+  .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;}
+  label.fld{display:flex;flex-direction:column;gap:4px;font-size:11px;font-weight:600;color:var(--ink2);}
+  input[type=number],input[type=date],input[type=text]:not(.title-input),input:not([type]):not(.title-input),select{padding:6px 9px;border:1px solid var(--bd);border-radius:var(--r2);
+    font-size:13px;font-family:inherit;color:var(--ink);background:#fff;transition:.15s;box-shadow:inset 0 1px 1px rgba(15,23,42,.03);}
+  input[type=number]{width:54px;text-align:center;}
+  input:focus,select:focus{outline:none;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring);}
+  table{border-collapse:separate;border-spacing:0;}
+  .hint{color:var(--ink3);font-size:11px;}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;}
+  .pill.ok{background:var(--ok);color:var(--ok-ink);} .pill.bad{background:var(--bad);color:var(--bad-ink);}
+  .save-state{font-size:11px;font-weight:800;color:rgba(255,255,255,.72);padding:3px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.14);}
+  .save-state.dirty{color:#fff;background:rgba(255,245,224,.18);border-color:rgba(255,245,224,.32);}
+  .save-state.clean{color:#dff6e7;background:rgba(29,138,69,.18);border-color:rgba(228,246,234,.22);}
+  .status-strip{display:grid;grid-template-columns:repeat(4,minmax(128px,1fr));gap:8px;margin:0 0 10px;}
+  .stat{border:1px solid var(--bd2);border-radius:8px;background:#fbfcfe;padding:8px 10px;min-height:48px;box-shadow:var(--sh-sm);}
+  .stat b{display:block;font-size:15px;line-height:1.1;color:var(--ink);margin-bottom:2px;}
+  .stat span{font-size:10px;font-weight:700;color:var(--ink3);}
+  .stat.ok{background:var(--ok);border-color:#bde5c9;}
+  .stat.bad{background:var(--bad);border-color:var(--bad-bd);}
+  .stat.warn{background:var(--warn);border-color:var(--warn-bd);}
+  .issue-summary{margin:10px 0 0;}
+  .issue-box{border:1px solid var(--bd2);border-radius:11px;background:#fbfcfe;padding:10px 12px;font-size:12px;}
+  .issue-box.good{background:var(--ok);border-color:#bde5c9;color:var(--ok-ink);}
+  .issue-box.bad{background:#fff4f4;border-color:var(--bad-bd);color:var(--bad-ink);}
+  .issue-box.warn{background:#fffaf0;border-color:var(--warn-bd);color:#7c5c12;}
+  .issue-box ul{margin:6px 0 0 18px;padding:0;}
+  .issue-box li{margin:2px 0;}
+
+  /* timetable grid */
+  .ttwrap{overflow-x:auto;border:1px solid var(--bd2);border-radius:8px;box-shadow:var(--sh-sm);background:#fff;}
+  table.tt{border-collapse:separate;border-spacing:0;font-size:12px;white-space:nowrap;width:100%;}
+  table.tt th,table.tt td{border-right:1px solid var(--bd2);border-bottom:1px solid var(--bd2);text-align:center;}
+  table.tt tr>*:first-child{border-left:none;}
+  table.tt th{background:#f6f8fb;font-weight:800;padding:5px 4px;color:var(--ink2);position:sticky;}
+  table.tt th.day{background:#eef4fb;color:#17202c;letter-spacing:0;}
+  table.tt th.grade{background:#f1f5f9;min-width:40px;position:sticky;left:0;z-index:3;box-shadow:1px 0 0 var(--bd2);}
+  td.cell{width:44px;height:33px;cursor:pointer;position:relative;user-select:none;background:#fff;font-weight:700;color:#263241;transition:background .12s,box-shadow .12s,color .12s;}
+  td.cell:hover{background:#f2f7ff;box-shadow:inset 0 0 0 1px #bfd4ff;}
+  td.cell.disabled{background:var(--disabled);cursor:not-allowed;color:#bcc3cd;}
+  td.cell.disabled:hover{box-shadow:none;}
+  td.cell.locked{background:var(--lock);}
+  td.cell.fixed{background:var(--fixed);color:#2251a5;}
+  td.cell.bad{background:var(--bad)!important;color:var(--bad-ink);box-shadow:inset 0 0 0 1.5px var(--bad-bd);}
+  td.cell.warn{background:var(--warn);}
+  td.cell.dragover{outline:2px dashed var(--acc);outline-offset:-2px;}
+  td.cell.focus{outline:2.5px solid var(--acc);outline-offset:-2px;z-index:2;box-shadow:0 0 0 3px var(--ring);}
+  td.cell .lk{position:absolute;top:1px;right:2px;font-size:8px;color:var(--lock-ink);}
+  td.cell .gd{position:absolute;top:1px;left:2px;font-size:8px;font-weight:800;color:var(--acc);}
+  .kbd-cheat{font-size:11px;color:var(--ink2);background:#f8fafc;border:1px solid var(--bd2);
+    border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:2;}
+  .kbd-cheat b{display:inline-block;min-width:16px;text-align:center;background:#fff;border:1px solid var(--bd);border-bottom-width:2px;
+    border-radius:5px;padding:1px 5px;margin:0 1px;font-weight:700;color:#34405a;font-size:11px;}
+  .daysep{border-left:2px solid #aeb8c7!important;}
+
+  /* absence grid */
+  table.abs{border-collapse:separate;border-spacing:0;font-size:11px;border:1px solid var(--bd2);border-radius:8px;overflow:hidden;background:#fff;}
+  table.abs th,table.abs td{border-right:1px solid var(--bd2);border-bottom:1px solid var(--bd2);text-align:center;padding:0;}
+  table.abs th{background:#f6f8fb;padding:3px 4px;color:var(--ink2);font-weight:800;}
+  table.abs td.tname{padding:3px 11px;text-align:right;background:#f1f5f9;font-weight:800;white-space:nowrap;color:var(--ink);}
+  table.abs td.x{width:21px;height:21px;cursor:pointer;transition:.12s;}
+  table.abs td.x:hover{background:#dfe5ef;}
+  table.abs td.x.on{background:#334155;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);}
+  table.abs td.x.on:hover{background:#1f2937;}
+  table.abs td.x.dis{background:var(--disabled);cursor:not-allowed;}
+  table.abs td.x.dis:hover{background:var(--disabled);}
+
+  /* targets */
+  table.tg{border-collapse:separate;border-spacing:0;font-size:12px;border:1px solid var(--bd2);border-radius:8px;overflow:hidden;background:#fff;}
+  table.tg th,table.tg td{border-right:1px solid var(--bd2);border-bottom:1px solid var(--bd2);padding:5px 9px;text-align:center;}
+  table.tg th{background:#f6f8fb;font-weight:800;color:var(--ink2);}
+  table.tg td.sub{text-align:right;background:#f1f5f9;font-weight:800;color:var(--ink);}
+  table.tg input{width:46px;}
+
+  /* picker popover */
+  #picker{position:absolute;z-index:100;background:#fff;border:1px solid var(--bd2);border-radius:8px;box-shadow:var(--sh-lg);padding:11px;display:none;width:244px;}
+  #picker .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px;}
+  #picker .grid button{padding:8px 0;font-size:12px;border-radius:7px;box-shadow:none;}
+  #picker .grid button.fx{background:var(--fixed);border-color:var(--fixed-bd);color:#2251a5;}
+  #picker .opts{display:flex;gap:12px;align-items:center;border-top:1px solid var(--bd2);padding-top:9px;margin-top:3px;font-size:11px;font-weight:600;color:var(--ink2);}
+  #picker .opts label{display:flex;align-items:center;gap:4px;cursor:pointer;}
+  #picker .foot{display:flex;gap:7px;margin-top:8px;}
+  #picker .foot button{flex:1;}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(17,24,38,.5);backdrop-filter:blur(3px);display:none;z-index:200;align-items:flex-start;justify-content:center;padding:42px 14px;overflow:auto;}
+  .modal{background:#fff;border-radius:8px;max-width:880px;width:100%;padding:0;box-shadow:var(--sh-lg);animation:pop .18s ease;}
+  @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.99);}to{opacity:1;transform:none;}}
+  .modal h2{margin:0;padding:16px 20px;border-bottom:1px solid var(--bd2);font-size:15px;font-weight:700;display:flex;align-items:center;}
+  .modal .mbody{padding:20px;max-height:72vh;overflow:auto;}
+  .modal .mbody h3{color:var(--ink);}
+  .modal .mfoot{padding:14px 20px;border-top:1px solid var(--bd2);display:flex;gap:9px;justify-content:flex-end;align-items:center;background:#fbfcfe;border-radius:0 0 8px 8px;}
+  .mini{font-size:11px;color:var(--ink3);}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,12px);background:#111827;color:#fff;padding:11px 20px;border-radius:8px;
+    font-size:13px;font-weight:600;z-index:300;opacity:0;transition:.28s cubic-bezier(.2,.8,.2,1);pointer-events:none;box-shadow:var(--sh-md);}
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+  details.help{margin-top:10px;} details.help summary{cursor:pointer;color:var(--acc);font-size:12px;font-weight:600;}
+  .reasons{margin:10px 0 0;padding:11px 13px;background:#fff4f4;border:1px solid var(--bad-bd);border-radius:8px;font-size:12px;color:var(--bad-ink);}
+  .reasons ul{margin:5px 0 0 16px;padding:0;}
+  .legend{display:flex;gap:15px;flex-wrap:wrap;font-size:11px;font-weight:600;color:var(--ink2);margin-top:11px;}
+  .legend span{display:inline-flex;align-items:center;gap:5px;}
+  .sw{width:14px;height:14px;border:1px solid var(--bd);border-radius:4px;display:inline-block;}
+  @media (max-width:760px){
+    header{align-items:stretch;}
+    header h1{width:100%;}
+    header .title-input{width:100%;}
+    .status-strip{grid-template-columns:repeat(2,minmax(120px,1fr));}
+    .wrap{padding:12px 10px 56px;}
+    td.cell{width:40px;height:32px;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>週時間割</h1>
+  <input class="title-input" id="weekTitle" placeholder="例：6月第2週（6/8〜6/12）">
+  <span class="save-state" id="saveState">編集中</span>
+  <span class="spacer"></span>
+  <button class="ghost" onclick="newWeek()">新規</button>
+  <button class="ghost" id="undoBtn" onclick="undoLast()" disabled title="ひとつ前の編集に戻す">↶ 元に戻す</button>
+  <button class="ghost" onclick="openMasters()">⚙ 設定（マスタ）</button>
+  <button class="ghost" onclick="saveWeek()">保存</button>
+  <button class="ghost" onclick="loadWeek()">読込</button>
+  <button class="primary" onclick="copyToClipboard()">⧉ Excelへコピー</button>
+</header>
+
+<div class="wrap">
+
+  <!-- 今週の器 -->
+  <div class="panel" id="p-frame">
+    <h2 onclick="togglePanel('p-frame')"><span class="chev">▾</span>① 今週の器（曜日ごとのコマ数）</h2>
+    <div class="body">
+      <div class="row" id="frameRow"></div>
+      <div class="hint" style="margin-top:8px;">使わない末尾コマはグレーアウトされ、配置対象外になります（午前授業＝4 など）。</div>
+    </div>
+  </div>
+
+  <!-- 教員不在 -->
+  <div class="panel collapsed" id="p-abs">
+    <h2 onclick="togglePanel('p-abs')"><span class="chev">▾</span>② 教員の不在コマ（出張・年休など）</h2>
+    <div class="body">
+      <div class="ttwrap"><div id="absGrid"></div></div>
+      <div class="hint" style="margin-top:6px;">セルをクリックで「不在」。不在の先生の授業はそのコマに自動配置されません。</div>
+    </div>
+  </div>
+
+  <!-- コマ数指定 -->
+  <div class="panel" id="p-target">
+    <h2 onclick="togglePanel('p-target')"><span class="chev">▾</span>③ 今週の教科コマ数</h2>
+    <div class="body">
+      <div id="targetArea"></div>
+      <div class="hint" style="margin-top:6px;">標準時数をプリセット済み。固定枠（総合・学活・道徳・行事）は時間割上で直接配置します。過不足が0になると生成できます。</div>
+    </div>
+  </div>
+
+  <!-- 時間割 -->
+  <div class="panel" id="p-tt">
+    <h2 onclick="togglePanel('p-tt')"><span class="chev">▾</span>④ 時間割（生成・手直し）</h2>
+    <div class="body">
+      <div class="row" style="margin-bottom:10px;align-items:center;">
+        <button class="primary" id="genBtn" onclick="runGenerate()">⚙ 自動生成</button>
+        <button onclick="runGenerate()">↻ 再生成（別解）</button>
+        <button onclick="clearAuto()">教科だけクリア</button>
+        <span class="hint">5教科は自動生成で同日1コマまで。必要な同日2コマは手入力で入れます。</span>
+        <span class="spacer"></span>
+        <span id="genStatus" class="hint"></span>
+      </div>
+      <div class="kbd-cheat">⌨ セルをクリックで選択 →
+        <b>1</b>国 <b>2</b>社 <b>3</b>数 <b>4</b>理 <b>5</b>英 <b>6</b>保 <b>7</b>音 <b>8</b>美 <b>9</b>技 <b>0</b>家
+        ／ <b>Q</b>総合 <b>W</b>学活 <b>E</b>道徳 <b>R</b>行事
+        ／ <b>L</b>ロック <b>G</b>合同 <b>Space/Del</b>クリア ／ <b>←↑↓→</b>移動 ・ ダブルクリックでメニュー（手入力教科は自動ロック）</div>
+      <div class="status-strip" id="statusStrip"></div>
+      <div class="ttwrap"><div id="ttGrid"></div></div>
+      <div id="issueSummary" class="issue-summary"></div>
+      <div id="reasons"></div>
+      <div class="legend">
+        <span><i class="sw" style="background:#fff"></i>教科</span>
+        <span><i class="sw" style="background:var(--fixed)"></i>固定枠</span>
+        <span><i class="sw" style="background:var(--lock)"></i>ロック</span>
+        <span><i class="sw" style="background:var(--bad)"></i>制約違反(ハード)</span>
+        <span><i class="sw" style="background:var(--warn)"></i>注意(ソフト)</span>
+        <span><i class="sw" style="background:var(--disabled)"></i>枠外</span>
+        <span>🔒=ロック　合=合同(教員重複OK)</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- cell picker -->
+<div id="picker"></div>
+
+<!-- masters modal -->
+<div class="modal-bg" id="mModal">
+  <div class="modal">
+    <h2>設定（マスタ）<span class="spacer" style="flex:1"></span></h2>
+    <div class="mbody" id="mBody"></div>
+    <div class="mfoot">
+      <span class="mini" style="margin-right:auto;">変更は「保存して閉じる」で反映。標準時数は③の初期値に使われます。</span>
+      <button onclick="closeMasters()">キャンセル</button>
+      <button class="primary" onclick="saveMasters()">保存して閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   定数・既定マスタ
+   ============================================================ */
+const DAYS = ["月","火","水","木","金"];
+const PERIODS = 6;
+const NCOL = DAYS.length * PERIODS; // 30
+// 自動配置する教科
+const AUTO_SUBJECTS = ["国語","社会","数学","理科","英語","保体","音楽","美術","技術","家庭"];
+// 5教科。同じ学年・同じ日に自動生成で2コマ以上入れない。
+const FIVE_SUBJECTS = ["国語","社会","数学","理科","英語"];
+// 手動の固定枠
+const FIXED_SUBJECTS = ["総合","学活","道徳","行事"];
+// 朝1限に避けたい教科（ソフト）
+const MORNING_AVOID = ["音楽","美術","保体","英語"];
+
+const DEFAULT_MASTERS = {
+  grades: ["１A","２A","３A"],
+  teachers: ["関谷","渡會","松本","三浦博","廣中","福山","八柳","金丸"],
+  // 道徳担当の選択肢に追加する特支の先生（授業担当ではない）
+  doutokuExtra: ["立中","三浦俊","生沼"],
+  // 教科→担当教員（全学年共通）
+  subjectTeacher: {
+    "国語":"八柳","社会":"渡會","数学":"福山","理科":"関谷","英語":"金丸",
+    "保体":"松本","音楽":"三浦博","美術":"三浦博","技術":"三浦博","家庭":"廣中"
+  },
+  // 学活の担当（学年ごと）
+  homeroom: { "１A":["関谷"], "２A":["松本"], "３A":["関谷"] },
+  // 総合の担当チーム（学年ごと・全員占有）
+  sougou:   { "１A":["関谷","渡會"], "２A":["松本","三浦博","廣中"], "３A":["福山","八柳","金丸"] },
+  // 標準時数（自動教科のみ・学年ごと）
+  standardHours: {
+    "１A":{国語:4,社会:3,数学:4,理科:4,英語:4,保体:3,音楽:1,美術:1,技術:1,家庭:1},
+    "２A":{国語:3,社会:4,数学:3,理科:4,英語:4,保体:3,音楽:1,美術:1,技術:1,家庭:1},
+    "３A":{国語:3,社会:4,数学:4,理科:4,英語:3,保体:3,音楽:1,美術:1,技術:0,家庭:1}
+  }
+};
+
+/* ============================================================
+   状態
+   ============================================================ */
+let M = clone(DEFAULT_MASTERS);   // マスタ
+let W = null;                      // 今週データ
+let undoStack = [];
+let isDirty = false;
+let lastValidation = {hard:[], soft:[], empty:0, diffs:[]};
+const MAX_UNDO = 50;
+
+function blankWeek(){
+  const grid = {};
+  M.grades.forEach(g=>{
+    grid[g] = [];
+    for(let c=0;c<NCOL;c++) grid[g].push({sub:"",locked:false,goudou:false});
+  });
+  const targets = {};
+  M.grades.forEach(g=> targets[g] = Object.assign({}, M.standardHours[g]));
+  const doutoku = {};
+  M.grades.forEach(g=> doutoku[g] = (M.homeroom[g]&&M.homeroom[g][0])||"" );
+  return {
+    title:"",
+    mondayDate:"",
+    periodsPerDay:[6,6,5,6,6],
+    absence:{},          // "teacher|col" -> true
+    targets,             // grade -> {subject:count}
+    doutoku,             // grade -> 道徳担当(週次)
+    grid
+  };
+}
+
+/* ============================================================
+   ユーティリティ
+   ============================================================ */
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+function colDay(c){ return Math.floor(c/PERIODS); }
+function colPeriod(c){ return (c%PERIODS)+1; }
+function isActive(c){ return colPeriod(c) <= W.periodsPerDay[colDay(c)]; }
+function dayDate(di){ if(!W.mondayDate) return null; const d=new Date(W.mondayDate+'T00:00:00'); if(isNaN(d)) return null; d.setDate(d.getDate()+di); return d; }
+function fmtMD(d){ return d ? (d.getMonth()+1)+'/'+d.getDate() : ''; }
+function stepCol(c,dir){ let n=c+dir; while(n>=0&&n<NCOL){ if(isActive(n)) return n; n+=dir; } return null; }
+function mulberry32(a){ return function(){ a|=0;a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2000); }
+function isFiveSubject(s){ return FIVE_SUBJECTS.includes(s); }
+function sameSubjectCellsOnDay(grid, grade, c, subject){
+  const out=[];
+  const di=colDay(c);
+  for(let pp=0;pp<PERIODS;pp++){
+    const cc=di*PERIODS+pp;
+    if(!isActive(cc)) continue;
+    const cell=grid[grade]&&grid[grade][cc];
+    if(cell&&cell.sub===subject) out.push(cc);
+  }
+  return out;
+}
+function hasFiveSubjectOnDay(grid, grade, c, subject){
+  return isFiveSubject(subject) && sameSubjectCellsOnDay(grid,grade,c,subject).some(cc=>cc!==c);
+}
+function esc(s){ return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function remember(label){
+  if(!W) return;
+  undoStack.push({label, masters:clone(M), week:clone(W)});
+  if(undoStack.length>MAX_UNDO) undoStack.shift();
+  updateUndoButton();
+}
+function markDirty(on=true){ isDirty=on; updateSaveState(); }
+function updateSaveState(){
+  const el=document.getElementById('saveState'); if(!el) return;
+  el.textContent=isDirty?'未保存':'変更なし';
+  el.className='save-state '+(isDirty?'dirty':'clean');
+}
+function updateUndoButton(){
+  const btn=document.getElementById('undoBtn'); if(btn) btn.disabled=undoStack.length===0;
+}
+function undoLast(){
+  const prev=undoStack.pop();
+  if(!prev){ toast('戻せる編集がありません'); return; }
+  W=prev.week;
+  if(prev.masters) M=prev.masters;
+  document.getElementById('weekTitle').value=W.title||'';
+  render();
+  markDirty(true);
+  updateUndoButton();
+  toast('ひとつ前に戻しました');
+}
+function didChange(){ markDirty(true); updateUndoButton(); }
+function countEmptyActive(){
+  let n=0;
+  M.grades.forEach(g=>{ for(let c=0;c<NCOL;c++){ if(isActive(c)&&!W.grid[g][c].sub) n++; } });
+  return n;
+}
+function collectDiffs(){
+  return M.grades.map(g=>({g,...reconFor(g)})).filter(r=>r.diff!==0);
+}
+function summarizeValidation(hard, soft){
+  const empty=countEmptyActive();
+  const diffs=collectDiffs();
+  lastValidation={hard, soft, empty, diffs};
+  renderStatusStrip();
+  renderIssueSummary();
+}
+function renderStatusStrip(){
+  const host=document.getElementById('statusStrip'); if(!host) return;
+  const hard=lastValidation.hard.length;
+  const soft=lastValidation.soft.length;
+  const empty=lastValidation.empty;
+  const diffs=lastValidation.diffs.length;
+  host.innerHTML =
+    `<div class="stat ${hard?'bad':'ok'}"><b>${hard}</b><span>ハード違反</span></div>`+
+    `<div class="stat ${soft?'warn':'ok'}"><b>${soft}</b><span>注意事項</span></div>`+
+    `<div class="stat ${empty?'warn':'ok'}"><b>${empty}</b><span>未入力セル</span></div>`+
+    `<div class="stat ${diffs?'bad':'ok'}"><b>${diffs?'要調整':'±0'}</b><span>過不足</span></div>`;
+}
+function renderIssueSummary(){
+  const host=document.getElementById('issueSummary'); if(!host) return;
+  const v=lastValidation;
+  if(!v.hard.length && !v.soft.length && !v.empty && !v.diffs.length){
+    host.innerHTML='<div class="issue-box good">制約チェックOKです。Excelへ貼り付けられる状態です。</div>';
+    return;
+  }
+  const parts=[];
+  if(v.hard.length) parts.push(issueBlock('bad','ハード違反',v.hard));
+  if(v.diffs.length) parts.push(issueBlock('bad','過不足',v.diffs.map(r=>`${r.g}: ${r.diff>0?'+':''}${r.diff}`)));
+  if(v.empty) parts.push(`<div class="issue-box warn"><b>未入力セル</b>：${v.empty}セルあります。</div>`);
+  if(v.soft.length) parts.push(issueBlock('warn','注意',v.soft,5));
+  host.innerHTML=parts.join('');
+}
+function issueBlock(kind,title,items,limit=6){
+  const rest=Math.max(0,items.length-limit);
+  const lis=items.slice(0,limit).map(x=>`<li>${esc(x)}</li>`).join('');
+  return `<div class="issue-box ${kind}"><b>${esc(title)}</b><ul>${lis}${rest?`<li>ほか ${rest}件</li>`:''}</ul></div>`;
+}
+function suggestWeekTitle(){
+  if(!W.mondayDate) return;
+  const titleEl=document.getElementById('weekTitle');
+  if((titleEl.value||'').trim()) return;
+  const start=dayDate(0), end=dayDate(4);
+  if(!start||!end) return;
+  const week=Math.floor((start.getDate()-1)/7)+1;
+  W.title=`${start.getMonth()+1}月第${week}週（${fmtMD(start)}〜${fmtMD(end)}）`;
+  titleEl.value=W.title;
+}
+
+// あるセルが占有する教員集合（名目上の担当も含む＝負荷集計などソフト用途）
+function occupants(grade, cell){
+  if(!cell || !cell.sub) return [];
+  const s = cell.sub;
+  if(s==="行事") return [];
+  if(s==="学活") return (M.homeroom[grade]||[]).slice();
+  if(s==="総合") return (M.sougou[grade]||[]).slice();
+  if(s==="道徳"){ const t=W.doutoku[grade]; return t?[t]:[]; }
+  const t = M.subjectTeacher[s];
+  return t?[t]:[];
+}
+// ハードに教員を拘束するセルだけ（ダブルブッキング判定・自動配置ブロック用）。
+// 学活・道徳・行事は「全校一斉の固定時間／担当は名目」なので教員を拘束しない。総合は本物のチームティーチング。
+function hardOccupants(grade, cell){
+  if(!cell || !cell.sub) return [];
+  const s = cell.sub;
+  if(s==="行事"||s==="学活"||s==="道徳") return [];
+  if(s==="総合") return (M.sougou[grade]||[]).slice();
+  const t = M.subjectTeacher[s];
+  return t?[t]:[];
+}
+
+/* ============================================================
+   レンダリング
+   ============================================================ */
+function render(){
+  renderFrame();
+  renderAbsence();
+  renderTargets();
+  renderTT();
+}
+
+function renderFrame(){
+  const el = document.getElementById('frameRow');
+  el.innerHTML = "";
+  const dl = document.createElement('label'); dl.className='fld';
+  dl.innerHTML = '週の月曜日';
+  const di = document.createElement('input'); di.type='date'; di.value=W.mondayDate||''; di.style.width='130px';
+  di.oninput = ()=>{ remember('週の月曜日'); W.mondayDate=di.value; suggestWeekTitle(); didChange(); renderTT(); };
+  dl.appendChild(di); el.appendChild(dl);
+  const sepd=document.createElement('div'); sepd.style.width='10px'; el.appendChild(sepd);
+  DAYS.forEach((d,i)=>{
+    const l = document.createElement('label'); l.className='fld';
+    l.innerHTML = `${d}曜`;
+    const inp = document.createElement('input'); inp.type='number'; inp.min=0; inp.max=PERIODS; inp.value=W.periodsPerDay[i];
+    inp.oninput = ()=>{ let v=Math.max(0,Math.min(PERIODS,parseInt(inp.value)||0)); if(v===W.periodsPerDay[i])return; remember(`${d}曜のコマ数`); W.periodsPerDay[i]=v; didChange(); renderAbsence(); renderTargets(); renderTT(); };
+    l.appendChild(inp); el.appendChild(l);
+  });
+}
+
+function renderAbsence(){
+  const host = document.getElementById('absGrid');
+  let h = '<table class="abs"><tr><th></th>';
+  for(let c=0;c<NCOL;c++){
+    const sep = colPeriod(c)===1 && c>0 ? ' daysep':'';
+    h += `<th class="${sep}">${colPeriod(c)===1?DAYS[colDay(c)]:''}<br>${colPeriod(c)}</th>`;
+  }
+  h += '</tr>';
+  M.teachers.forEach(t=>{
+    h += `<tr><td class="tname">${t}</td>`;
+    for(let c=0;c<NCOL;c++){
+      const act = isActive(c);
+      const on = W.absence[t+'|'+c];
+      const sep = colPeriod(c)===1 && c>0 ? ' daysep':'';
+      h += `<td class="x${on?' on':''}${act?'':' dis'}${sep}" data-t="${t}" data-c="${c}"></td>`;
+    }
+    h += '</tr>';
+  });
+  h += '</table>';
+  host.innerHTML = h;
+  host.querySelectorAll('td.x:not(.dis)').forEach(td=>{
+    td.onclick=()=>{ const k=td.dataset.t+'|'+td.dataset.c; remember('不在コマ'); if(W.absence[k])delete W.absence[k]; else W.absence[k]=true; didChange(); td.classList.toggle('on'); renderTT(); };
+  });
+}
+
+function renderTargets(){
+  const host = document.getElementById('targetArea');
+  let h = '<table class="tg"><tr><th>教科＼学年</th>';
+  M.grades.forEach(g=> h+=`<th>${g}</th>`);
+  h += '</tr>';
+  AUTO_SUBJECTS.forEach(s=>{
+    h += `<tr><td class="sub">${s}</td>`;
+    M.grades.forEach(g=>{
+      const v = (W.targets[g] && W.targets[g][s])||0;
+      h += `<td><input type="number" min="0" max="30" value="${v}" data-g="${g}" data-s="${s}"></td>`;
+    });
+    h += '</tr>';
+  });
+  // 道徳担当（週次）
+  h += `<tr><td class="sub" style="background:#eef3ff">道徳担当</td>`;
+  M.grades.forEach(g=>{
+    let opt = M.teachers.concat(M.doutokuExtra||[]).map(t=>`<option ${W.doutoku[g]===t?'selected':''}>${t}</option>`).join('');
+    h += `<td style="background:#f7faff"><select data-dg="${g}"><option value="">—</option>${opt}</select></td>`;
+  });
+  h += '</tr>';
+  // 集計行
+  h += `<tr><td class="sub">自動教科 合計</td>`;
+  M.grades.forEach(g=> h+=`<td id="sum-${g}"></td>`);
+  h += '</tr>';
+  h += `<tr><td class="sub">空き枠（器−固定）</td>`;
+  M.grades.forEach(g=> h+=`<td id="slot-${g}"></td>`);
+  h += '</tr>';
+  h += `<tr><td class="sub">過不足</td>`;
+  M.grades.forEach(g=> h+=`<td id="diff-${g}"></td>`);
+  h += '</tr>';
+  h += '</table>';
+  host.innerHTML = h;
+  host.querySelectorAll('input[data-s]').forEach(inp=>{
+    inp.oninput=()=>{ const v=Math.max(0,parseInt(inp.value)||0); if(W.targets[inp.dataset.g][inp.dataset.s]===v)return; remember('教科コマ数'); W.targets[inp.dataset.g][inp.dataset.s]=v; didChange(); updateRecon(); validate(); };
+  });
+  host.querySelectorAll('select[data-dg]').forEach(sel=>{
+    sel.onchange=()=>{ remember('道徳担当'); W.doutoku[sel.dataset.dg]=sel.value; didChange(); renderTT(); };
+  });
+  updateRecon();
+}
+
+// 過不足の計算
+function reconFor(g){
+  let active=0;
+  for(let c=0;c<NCOL;c++) if(isActive(c)) active++;
+  let fixedCells=0, lockedAuto=0;
+  W.grid[g].forEach((cell,c)=>{
+    if(!isActive(c)||!cell.sub) return;
+    if(FIXED_SUBJECTS.includes(cell.sub)) fixedCells++;
+    else if(cell.locked) lockedAuto++;
+  });
+  const slots = active - fixedCells;               // 自動教科で埋めるべき総枠
+  let sum=0; AUTO_SUBJECTS.forEach(s=> sum += (W.targets[g][s]||0));
+  return { active, fixedCells, slots, sum, diff: sum - slots };
+}
+function updateRecon(){
+  let allOk=true;
+  M.grades.forEach(g=>{
+    const r=reconFor(g);
+    const se=document.getElementById('sum-'+g); if(se) se.textContent=r.sum;
+    const sl=document.getElementById('slot-'+g); if(sl) sl.textContent=r.slots;
+    const de=document.getElementById('diff-'+g);
+    if(de){ de.innerHTML = r.diff===0 ? '<span class="pill ok">±0</span>' : `<span class="pill bad">${r.diff>0?'+':''}${r.diff}</span>`; }
+    if(r.diff!==0) allOk=false;
+  });
+  const btn=document.getElementById('genBtn');
+  if(btn){ btn.disabled=!allOk; }
+  return allOk;
+}
+
+function renderTT(){
+  const host=document.getElementById('ttGrid');
+  // header
+  let h='<table class="tt"><tr><th class="grade">学年</th>';
+  for(let c=0;c<NCOL;c++){ const sep=colPeriod(c)===1&&c>0?' daysep':''; if(colPeriod(c)===1){ const dt=fmtMD(dayDate(colDay(c))); h+=`<th class="day${sep}">${DAYS[colDay(c)]}${dt?`<br><span style="font-weight:400;font-size:10px;color:#6b7886">${dt}</span>`:''}</th>`; } else { h+=`<th class="day${sep}">&nbsp;</th>`; } }
+  h+='</tr><tr><th class="grade">&nbsp;</th>';
+  for(let c=0;c<NCOL;c++){ const sep=colPeriod(c)===1&&c>0?' daysep':''; h+=`<th class="${sep}">${colPeriod(c)}</th>`; }
+  h+='</tr>';
+  M.grades.forEach(g=>{
+    h+=`<tr><th class="grade">${g}</th>`;
+    W.grid[g].forEach((cell,c)=>{
+      const sep=colPeriod(c)===1&&c>0?' daysep':'';
+      if(!isActive(c)){ h+=`<td class="cell disabled${sep}"></td>`; return; }
+      let cls='cell';
+      if(FIXED_SUBJECTS.includes(cell.sub)) cls+=' fixed';
+      if(cell.locked) cls+=' locked';
+      h+=`<td class="${cls}${sep}" data-g="${g}" data-c="${c}" draggable="true">`+
+         `${cell.sub||''}${cell.locked?'<span class="lk">🔒</span>':''}${cell.goudou?'<span class="gd">合</span>':''}</td>`;
+    });
+    h+='</tr>';
+  });
+  h+='</table>';
+  host.innerHTML=h;
+  // events
+  host.querySelectorAll('td.cell:not(.disabled)').forEach(td=>{
+    td.onclick=(e)=>{ e.stopPropagation(); closePicker(); setFocus(td.dataset.g,parseInt(td.dataset.c)); };
+    td.ondblclick=(e)=>{ e.stopPropagation(); openPicker(td); };
+    td.ondragstart=(e)=>{ e.dataTransfer.setData('text',td.dataset.g+','+td.dataset.c); };
+    td.ondragover=(e)=>{ e.preventDefault(); td.classList.add('dragover'); };
+    td.ondragleave=()=>td.classList.remove('dragover');
+    td.ondrop=(e)=>{ e.preventDefault(); td.classList.remove('dragover'); const [g2,c2]=e.dataTransfer.getData('text').split(','); swapCells(g2,parseInt(c2),td.dataset.g,parseInt(td.dataset.c)); };
+  });
+  validate();
+  highlightFocus();
+}
+
+/* ============================================================
+   キーボード操作
+   ============================================================ */
+let focusCell=null;
+const KEYMAP={'1':'国語','2':'社会','3':'数学','4':'理科','5':'英語','6':'保体','7':'音楽','8':'美術','9':'技術','0':'家庭','q':'総合','w':'学活','e':'道徳','r':'行事'};
+function setFocus(g,c){ focusCell={g,c}; highlightFocus(); }
+function applyManualSubject(cell, subject){
+  cell.sub=subject;
+  cell.locked=AUTO_SUBJECTS.includes(subject);
+}
+function highlightFocus(){
+  const host=document.getElementById('ttGrid'); if(!host) return;
+  host.querySelectorAll('td.cell.focus').forEach(td=>td.classList.remove('focus'));
+  if(!focusCell) return;
+  host.querySelectorAll('td.cell').forEach(td=>{ if(td.dataset.g===focusCell.g && +td.dataset.c===focusCell.c){ td.classList.add('focus'); td.scrollIntoView({block:'nearest',inline:'nearest'}); } });
+}
+document.addEventListener('keydown',(e)=>{
+  const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select'||tag==='textarea') return;
+  if(document.getElementById('mModal').style.display==='flex') return;
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z'){
+    e.preventDefault(); undoLast(); return;
+  }
+  if(!focusCell) return;
+  let g=focusCell.g, c=focusCell.c; const gi=M.grades.indexOf(g);
+  if(!isActive(c)) return;
+  const cell=W.grid[g][c];
+  const lk=e.key.toLowerCase();
+  if(KEYMAP[lk]!==undefined && /^[0-9qwer]$/i.test(e.key)){
+    remember('セル入力');
+    applyManualSubject(cell,KEYMAP[lk]); e.preventDefault();
+    const nc=stepCol(c,1); if(nc!==null) focusCell={g,c:nc};
+    didChange();
+    renderTT(); updateRecon(); return;
+  }
+  if(lk==='l'){ remember('ロック切替'); cell.locked=!cell.locked; e.preventDefault(); didChange(); renderTT(); updateRecon(); return; }
+  if(lk==='g'){ remember('合同切替'); cell.goudou=!cell.goudou; e.preventDefault(); didChange(); renderTT(); return; }
+  if(e.key==='Backspace'||e.key==='Delete'||e.key===' '){ remember('セルクリア'); cell.sub=''; cell.locked=false; cell.goudou=false; e.preventDefault(); didChange(); renderTT(); updateRecon(); return; }
+  if(e.key==='ArrowRight'){ const nc=stepCol(c,1); if(nc!==null){focusCell={g,c:nc};highlightFocus();} e.preventDefault(); return; }
+  if(e.key==='ArrowLeft'){ const nc=stepCol(c,-1); if(nc!==null){focusCell={g,c:nc};highlightFocus();} e.preventDefault(); return; }
+  if(e.key==='ArrowDown'){ if(gi<M.grades.length-1){focusCell={g:M.grades[gi+1],c};highlightFocus();} e.preventDefault(); return; }
+  if(e.key==='ArrowUp'){ if(gi>0){focusCell={g:M.grades[gi-1],c};highlightFocus();} e.preventDefault(); return; }
+  if(e.key==='Escape'){ focusCell=null; highlightFocus(); return; }
+});
+
+function swapCells(g1,c1,g2,c2){
+  if(g1===g2&&c1===c2) return;
+  remember('セル入れ替え');
+  const a=W.grid[g1][c1], b=W.grid[g2][c2];
+  W.grid[g1][c1]=b; W.grid[g2][c2]=a;
+  didChange();
+  renderTT(); updateRecon();
+}
+
+/* ============================================================
+   セル ピッカー
+   ============================================================ */
+let pickTarget=null;
+function openPicker(td){
+  pickTarget={g:td.dataset.g,c:parseInt(td.dataset.c)};
+  const cell=W.grid[pickTarget.g][pickTarget.c];
+  const p=document.getElementById('picker');
+  let h='<div class="grid">';
+  AUTO_SUBJECTS.forEach(s=> h+=`<button onclick="setCell('${s}')">${s}</button>`);
+  h+='</div><div class="grid">';
+  FIXED_SUBJECTS.forEach(s=> h+=`<button class="fx" onclick="setCell('${s}')">${s}</button>`);
+  h+='</div>';
+  h+=`<div class="opts">`+
+     `<label><input type="checkbox" id="pkLock" ${cell.locked?'checked':''}>🔒ロック</label>`+
+     `<label><input type="checkbox" id="pkGd" ${cell.goudou?'checked':''}>合同(重複OK)</label></div>`;
+  h+='<div class="foot"><button onclick="clearCell()">クリア</button><button onclick="closePicker()">閉じる</button></div>';
+  p.innerHTML=h;
+  const r=td.getBoundingClientRect();
+  p.style.display='block';
+  let left=r.left+window.scrollX, top=r.bottom+window.scrollY+4;
+  if(left+240>window.scrollX+window.innerWidth) left=window.scrollX+window.innerWidth-242;
+  p.style.left=left+'px'; p.style.top=top+'px';
+  document.getElementById('pkLock').onchange=(e)=>{ remember('ロック切替'); cell.locked=e.target.checked; didChange(); renderTT(); updateRecon(); };
+  document.getElementById('pkGd').onchange=(e)=>{ remember('合同切替'); cell.goudou=e.target.checked; didChange(); renderTT(); };
+}
+function setCell(s){ const cell=W.grid[pickTarget.g][pickTarget.c]; remember('セル入力'); applyManualSubject(cell,s); didChange(); closePicker(); renderTT(); updateRecon(); }
+function clearCell(){ const cell=W.grid[pickTarget.g][pickTarget.c]; remember('セルクリア'); cell.sub=""; cell.locked=false; cell.goudou=false; didChange(); closePicker(); renderTT(); updateRecon(); }
+function closePicker(){ document.getElementById('picker').style.display='none'; pickTarget=null; }
+document.addEventListener('click',(e)=>{ const p=document.getElementById('picker'); if(p.style.display==='block' && !p.contains(e.target)) closePicker(); });
+
+/* ============================================================
+   制約チェック（表示用）
+   ============================================================ */
+function validate(){
+  const host=document.getElementById('ttGrid');
+  const tds={}; host.querySelectorAll('td.cell:not(.disabled)').forEach(td=> tds[td.dataset.g+'|'+td.dataset.c]=td );
+  const hard=[], soft=[];
+  const pushUnique=(arr,msg)=>{ if(!arr.includes(msg)) arr.push(msg); };
+  // reset
+  Object.values(tds).forEach(td=>{ td.classList.remove('bad','warn'); });
+
+  // ハード: 教員ダブルブッキング（同列・合同除く）/ 不在
+  for(let c=0;c<NCOL;c++){
+    if(!isActive(c)) continue;
+    const used={}; // teacher -> [grade]
+    M.grades.forEach(g=>{
+      const cell=W.grid[g][c]; if(!cell.sub) return;
+      hardOccupants(g,cell).forEach(t=>{
+        (used[t]=used[t]||[]).push({g,goudou:cell.goudou});
+      });
+      // 不在違反
+      hardOccupants(g,cell).forEach(t=>{
+        if(W.absence[t+'|'+c]){
+          const td=tds[g+'|'+c]; if(td)td.classList.add('bad');
+          pushUnique(hard,`${DAYS[colDay(c)]}${colPeriod(c)}限：${g} ${cell.sub} の担当 ${t} が不在です`);
+        }
+      });
+    });
+    Object.entries(used).forEach(([t,arr])=>{
+      if(arr.length>1){
+        const allGoudou=arr.every(a=>a.goudou);
+        if(!allGoudou){
+          arr.forEach(a=>{ const td=tds[a.g+'|'+c]; if(td)td.classList.add('bad'); });
+          pushUnique(hard,`${DAYS[colDay(c)]}${colPeriod(c)}限：${t} が ${arr.map(a=>a.g).join('・')} で重複しています`);
+        }
+      }
+    });
+  }
+  // ハード: コマ数不一致（過不足）→ ③で表示。ここでは省略。
+
+  // 5教科の同日重複は自動生成ではハード禁止。手入力ロック済みだけ例外として注意表示。
+  M.grades.forEach(g=>{
+    DAYS.forEach((d,di)=>{
+      const bySubject={};
+      for(let p=0;p<PERIODS;p++){
+        const c=di*PERIODS+p; if(!isActive(c))continue;
+        const cell=W.grid[g][c]; const s=cell.sub;
+        if(s&&isFiveSubject(s)) (bySubject[s]=bySubject[s]||[]).push(c);
+      }
+      Object.entries(bySubject).forEach(([s,list])=>{
+        if(list.length<=1) return;
+        const manualOverride=list.every(c=>W.grid[g][c].locked);
+        list.forEach(c=>{
+          const td=tds[g+'|'+c];
+          if(!td) return;
+          if(manualOverride && !td.classList.contains('bad')) td.classList.add('warn');
+          if(!manualOverride) td.classList.add('bad');
+        });
+        if(manualOverride) pushUnique(soft,`${g} ${d}曜：${s} が手入力で ${list.length}回あります`);
+        else pushUnique(hard,`${g} ${d}曜：${s} が ${list.length}回あります（5教科は自動生成で1日1コマまで）`);
+      });
+    });
+  });
+
+  // ソフト: 朝1限の芸体・英語 / 5教科以外の同日同教科重複
+  M.grades.forEach(g=>{
+    // 朝1
+    DAYS.forEach((d,di)=>{
+      const c=di*PERIODS; if(!isActive(c)) return;
+      const cell=W.grid[g][c];
+      if(cell.sub && MORNING_AVOID.includes(cell.sub)){
+        const td=tds[g+'|'+c]; if(td&&!td.classList.contains('bad'))td.classList.add('warn');
+        pushUnique(soft,`${g} ${d}曜1限：${cell.sub} は朝1限の注意対象です`);
+      }
+    });
+    // 同日同教科
+    DAYS.forEach((d,di)=>{
+      const cnt={};
+      for(let p=0;p<PERIODS;p++){ const c=di*PERIODS+p; if(!isActive(c))continue; const s=W.grid[g][c].sub; if(s&&AUTO_SUBJECTS.includes(s)&&!isFiveSubject(s)) (cnt[s]=cnt[s]||[]).push(c); }
+      Object.entries(cnt).forEach(([s,list])=>{ if(list.length>1){ list.forEach(c=>{ const td=tds[g+'|'+c]; if(td&&!td.classList.contains('bad'))td.classList.add('warn'); }); pushUnique(soft,`${g} ${d}曜：${s} が同日に ${list.length}回あります`); } });
+    });
+  });
+  summarizeValidation(hard,soft);
+  return lastValidation;
+}
+
+/* ============================================================
+   自動生成エンジン（乱数つきバックトラッキング＋再起動）
+   ============================================================ */
+function runGenerate(){
+  if(!updateRecon()){ toast('過不足が±0でないため生成できません'); return; }
+  document.getElementById('reasons').innerHTML='';
+  const status=document.getElementById('genStatus');
+  status.textContent='生成中…';
+  setTimeout(()=>{ // UIを描画させる
+    const res=generate();
+    if(res.ok){
+      remember('自動生成');
+      applySolution(res.grid);
+      didChange();
+      status.textContent='完了（ソフト評価 '+res.score+'／'+res.restarts+'回試行）';
+    } else {
+      if(res.best){ remember('自動生成（部分解）'); applySolution(res.best.grid); didChange(); }
+      status.textContent='一部配置できませんでした';
+      showReasons(res.unfilled);
+    }
+    renderTT(); updateRecon();
+  },20);
+}
+
+function generate(){
+  // 固定枠・ロックを保持した作業グリッド
+  const base={};
+  M.grades.forEach(g=> base[g]=W.grid[g].map(c=>({sub:c.sub,locked:c.locked,goudou:c.goudou})) );
+  // 自動で埋める対象セル（アクティブ・非固定・非ロック）→ クリア
+  M.grades.forEach(g=> base[g].forEach((cell,c)=>{ if(isActive(c)&&!FIXED_SUBJECTS.includes(cell.sub)&&!cell.locked) cell.sub=""; }) );
+
+  // demand: 目標 − ロック済み自動教科
+  function baseDemand(){
+    const d={};
+    M.grades.forEach(g=>{ d[g]={}; AUTO_SUBJECTS.forEach(s=> d[g][s]=W.targets[g][s]||0 ); });
+    M.grades.forEach(g=> base[g].forEach((cell,c)=>{ if(isActive(c)&&cell.locked&&AUTO_SUBJECTS.includes(cell.sub)) d[g][cell.sub]--; }) );
+    return d;
+  }
+  // 列ごとの既占有教員（固定・ロック由来）
+  function baseColTeachers(){
+    const ct=[]; for(let c=0;c<NCOL;c++) ct.push(new Set());
+    for(let c=0;c<NCOL;c++){ if(!isActive(c))continue; M.grades.forEach(g=>{ const cell=base[g][c]; if(cell.sub&&!cell.goudou) hardOccupants(g,cell).forEach(t=>ct[c].add(t)); }); }
+    return ct;
+  }
+  // 埋める対象セル一覧
+  const cells=[];
+  M.grades.forEach((g,gi)=> base[g].forEach((cell,c)=>{ if(isActive(c)&&!cell.sub) cells.push({g,gi,c}); }) );
+
+  let best=null, bestScore=Infinity, bestDepth=-1, restarts=0;
+  const RESTARTS=700, NODE_BUDGET=9000;
+  const t0=performance.now();
+
+  for(let r=0;r<RESTARTS;r++){
+    restarts++;
+    const rng=mulberry32((Date.now()^(r*2654435761))>>>0);
+    const demand=clone(baseDemand());
+    const colT=baseColTeachers();
+    const work={}; M.grades.forEach(g=> work[g]=base[g].map(c=>({...c})) );
+    let nodes=0, deepest=0;
+    const order=cells.slice();
+
+    function canPlaceSubject(g,c,s){
+      const t=M.subjectTeacher[s];
+      if(t && W.absence[t+'|'+c]) return false;
+      if(t && colT[c].has(t)) return false;
+      if(hasFiveSubjectOnDay(work,g,c,s)) return false;
+      return true;
+    }
+    function candidates(cell){
+      const out=[];
+      for(const s of AUTO_SUBJECTS){
+        if(demand[cell.g][s]<=0) continue;
+        if(!canPlaceSubject(cell.g,cell.c,s)) continue;
+        out.push(s);
+      }
+      return out;
+    }
+    function feasibleDemand(){
+      for(const g of M.grades){
+        for(const s of AUTO_SUBJECTS){
+          const need=demand[g][s]||0;
+          if(need<=0) continue;
+          let slots=0; const days=new Set();
+          for(let c=0;c<NCOL;c++){
+            if(!isActive(c)||work[g][c].sub) continue;
+            if(!canPlaceSubject(g,c,s)) continue;
+            if(isFiveSubject(s)) days.add(colDay(c)); else slots++;
+          }
+          if((isFiveSubject(s)?days.size:slots)<need) return false;
+        }
+      }
+      return true;
+    }
+    // MRV順に解く
+    function solve(remaining){
+      if(remaining.length===0) return true;
+      if(++nodes>NODE_BUDGET) return false;
+      if(!feasibleDemand()) return false;
+      // 最も候補の少ないセルを選ぶ
+      let bi=0,bc=null,bn=1e9;
+      for(let i=0;i<remaining.length;i++){ const cand=candidates(remaining[i]); if(cand.length<bn){bn=cand.length;bc=cand;bi=i; if(bn===0)break; if(bn===1)break;} }
+      const cell=remaining[bi];
+      const cand=bc;
+      if(remaining.length>deepest) deepest=remaining.length;
+      if(cand.length===0) return false;
+      // 値順をシャッフル＋ソフト優先（朝1の回避教科は後回し）
+      for(let i=cand.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [cand[i],cand[j]]=[cand[j],cand[i]]; }
+      cand.sort((a,b)=> softPref(cell,a)-softPref(cell,b));
+      const rest=remaining.slice(0,bi).concat(remaining.slice(bi+1));
+      for(const s of cand){
+        const t=M.subjectTeacher[s];
+        work[cell.g][cell.c].sub=s; demand[cell.g][s]--; if(t)colT[cell.c].add(t);
+        if(solve(rest)) return true;
+        work[cell.g][cell.c].sub=""; demand[cell.g][s]++; if(t)colT[cell.c].delete(t);
+        if(nodes>NODE_BUDGET) return false;
+      }
+      return false;
+    }
+    function softPref(cell,s){ // 小さいほど優先
+      let p=0; if(colPeriod(cell.c)===1 && MORNING_AVOID.includes(s)) p+=5;
+      // 同日同教科（5教科は候補段階で禁止済み）
+      const di=colDay(cell.c); let same=0;
+      if(!isFiveSubject(s)){
+        for(let pp=0;pp<PERIODS;pp++){ const cc=di*PERIODS+pp; if(cc===cell.c)continue; if(work[cell.g][cc]&&work[cell.g][cc].sub===s) same++; }
+        p+=same*3;
+      }
+      // 教員の同日コマ偏りを抑制：その教員がこの日に既に持っているコマ数が多いほど後回し（凸ペナルティ）
+      const tt=M.subjectTeacher[s];
+      if(tt){ let load=0; for(let pp=0;pp<PERIODS;pp++){ const cc=di*PERIODS+pp; if(cc===cell.c)continue; for(const g of M.grades){ const cl=work[g][cc]; if(cl&&cl.sub&&occupants(g,cl).includes(tt)){ load++; break; } } } p+=load*load*1.2; }
+      p+=rng()*0.5; return p;
+    }
+
+    const ok=solve(order);
+    if(ok){
+      const sc=scoreGrid(work);
+      if(sc<bestScore){ bestScore=sc; best={grid:clone(work)}; bestDepth=cells.length; }
+      if(performance.now()-t0>500 && best) break; // 十分良い解が出たら打ち切り
+    } else {
+      if(best===null && (cells.length-deepest)<bestDepth || best===null){
+        if(deepest>bestDepth){ bestDepth=deepest; best={grid:clone(work)}; }
+      }
+    }
+    if(performance.now()-t0>3500) break;
+  }
+
+  if(best && bestScore<Infinity){
+    return {ok:true, grid:best.grid, score:Math.round(bestScore), restarts};
+  }
+  // 解なし：部分解と理由
+  const unfilled=analyzeUnfilled(best?best.grid:base);
+  return {ok:false, best, unfilled, restarts};
+}
+
+function scoreGrid(grid){
+  let p=0;
+  // 朝1の芸体英語
+  M.grades.forEach(g=> DAYS.forEach((d,di)=>{ const c=di*PERIODS; if(isActive(c)&&MORNING_AVOID.includes(grid[g][c].sub)) p+=3; }));
+  // 同日同教科（5教科はハード制約なので、ソフト評価は5教科以外だけ）
+  M.grades.forEach(g=> DAYS.forEach((d,di)=>{ const cnt={}; for(let pp=0;pp<PERIODS;pp++){const c=di*PERIODS+pp; if(!isActive(c))continue; const s=grid[g][c].sub; if(AUTO_SUBJECTS.includes(s)&&!isFiveSubject(s))cnt[s]=(cnt[s]||0)+1;} Object.values(cnt).forEach(n=>{ if(n>1)p+=(n-1)*4; }); }));
+  // 教員：1日の持ちコマ平準化＋空きコマ
+  M.teachers.forEach(t=>{
+    DAYS.forEach((d,di)=>{
+      const occ=[];
+      for(let pp=0;pp<PERIODS;pp++){ const c=di*PERIODS+pp; if(!isActive(c))continue; let has=false; M.grades.forEach(g=>{ if(occupants(g,grid[g][c]).includes(t))has=true; }); if(has)occ.push(pp); }
+      if(occ.length){ const n=occ.length; const gaps=(occ[n-1]-occ[0]+1)-n; p+=gaps*1; p+=n*n*0.4; p+=Math.max(0,n-4)*2; }
+    });
+  });
+  return p;
+}
+
+function analyzeUnfilled(grid){
+  const list=[];
+  M.grades.forEach(g=>{
+    AUTO_SUBJECTS.forEach(s=>{
+      let need=W.targets[g][s]||0, got=0;
+      for(let c=0;c<NCOL;c++){ if(isActive(c)&&grid[g][c].sub===s)got++; }
+      if(got<need){
+        const t=M.subjectTeacher[s];
+        // どこが埋まっているか
+        let blocked=0,absent=0,sameDay=0;
+        for(let c=0;c<NCOL;c++){
+          if(!isActive(c)||grid[g][c].sub)continue;
+          if(W.absence[t+'|'+c]) absent++;
+          else if(hasFiveSubjectOnDay(grid,g,c,s)) sameDay++;
+          else {
+            let busy=false; M.grades.forEach(g2=>{ if(g2!==g&&hardOccupants(g2,grid[g2][c]).includes(t))busy=true; });
+            if(busy)blocked++;
+          }
+        }
+        list.push({g,s,short:need-got,t,blocked,absent,sameDay});
+      }
+    });
+  });
+  return list;
+}
+function showReasons(list){
+  if(!list||!list.length) return;
+  let h='<div class="reasons"><b>配置しきれなかったコマ：</b><ul>';
+  list.forEach(u=>{ h+=`<li>${u.g} の【${u.s}】が ${u.short}コマ不足（担当：${u.t}／他学年で埋まり ${u.blocked}枠・不在 ${u.absent}枠・5教科同日上限 ${u.sameDay||0}枠）</li>`; });
+  h+='</ul><span class="mini">固定枠や不在を見直すか、コマ数を調整してください。気に入った所はロックして再生成も有効です。</span></div>';
+  document.getElementById('reasons').innerHTML=h;
+}
+
+function applySolution(grid){
+  M.grades.forEach(g=> grid[g].forEach((cell,c)=>{ if(isActive(c)) W.grid[g][c]={sub:cell.sub,locked:cell.locked,goudou:cell.goudou}; }));
+}
+function clearAuto(){
+  remember('教科だけクリア');
+  M.grades.forEach(g=> W.grid[g].forEach((cell,c)=>{ if(isActive(c)&&!FIXED_SUBJECTS.includes(cell.sub)&&!cell.locked) cell.sub=""; }));
+  didChange();
+  renderTT(); updateRecon();
+}
+
+/* ============================================================
+   Excelコピー（3行×30列・教科名のみ・タブ区切り）
+   ============================================================ */
+function copyToClipboard(){
+  validate(); updateRecon();
+  const v=lastValidation;
+  if(v.hard.length || v.empty || v.diffs.length){
+    const msg=[
+      v.hard.length?`ハード違反 ${v.hard.length}件`:null,
+      v.empty?`未入力 ${v.empty}セル`:null,
+      v.diffs.length?`過不足 ${v.diffs.length}学年`:null
+    ].filter(Boolean).join('、');
+    if(!confirm(`${msg}があります。このままExcel用にコピーしますか？`)) return;
+  }
+  const rows=[];
+  M.grades.forEach(g=>{
+    const r=[];
+    for(let c=0;c<NCOL;c++){ r.push(isActive(c)?(W.grid[g][c].sub||''):''); }
+    rows.push(r.join('\t'));
+  });
+  const tsv=rows.join('\r\n');
+  navigator.clipboard.writeText(tsv).then(()=>{
+    toast('コピーしました → Excelの 作業!B13 に貼り付け');
+  },()=>{
+    // フォールバック
+    const ta=document.createElement('textarea'); ta.value=tsv; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    toast('コピーしました → 作業!B13 に貼り付け');
+  });
+}
+
+/* ============================================================
+   保存・読込（File System Access API＋フォールバック）
+   ============================================================ */
+function packWeek(){ W.title=document.getElementById('weekTitle').value; return {v:1, masters:M, week:W}; }
+async function saveWeek(){
+  const data=JSON.stringify(packWeek(),null,2);
+  const name=(W.title||'週時間割').replace(/[\\/:*?"<>|]/g,'_')+'.json';
+  if(window.showSaveFilePicker){
+    try{
+      const h=await window.showSaveFilePicker({suggestedName:name,types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+      const w=await h.createWritable(); await w.write(data); await w.close(); markDirty(false); toast('保存しました'); return;
+    }catch(e){ if(e.name==='AbortError')return; }
+  }
+  const blob=new Blob([data],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); URL.revokeObjectURL(a.href); toast('保存（ダウンロード）しました');
+  try{ localStorage.setItem('jugyo_backup',data); }catch(e){}
+  markDirty(false);
+}
+async function loadWeek(){
+  if(window.showOpenFilePicker){
+    try{
+      const [h]=await window.showOpenFilePicker({types:[{description:'JSON',accept:{'application/json':['.json']}}]});
+      const f=await h.getFile(); applyPack(JSON.parse(await f.text())); return;
+    }catch(e){ if(e.name==='AbortError')return; }
+  }
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.json';
+  inp.onchange=()=>{ const f=inp.files[0]; const rd=new FileReader(); rd.onload=()=>{ try{applyPack(JSON.parse(rd.result));}catch(e){toast('読込に失敗しました');} }; rd.readAsText(f); };
+  inp.click();
+}
+function applyPack(p){
+  if(p.masters) M=p.masters; if(p.week) W=p.week;
+  document.getElementById('weekTitle').value=W.title||'';
+  undoStack=[]; updateUndoButton(); markDirty(false);
+  render(); toast('読み込みました');
+}
+
+function newWeek(){ if(!confirm('現在の入力を破棄して新規作成しますか？'))return; undoStack=[]; W=blankWeek(); document.getElementById('weekTitle').value=''; updateUndoButton(); markDirty(false); render(); }
+
+/* ============================================================
+   設定（マスタ）編集モーダル
+   ============================================================ */
+function openMasters(){
+  const b=document.getElementById('mBody');
+  let h='';
+  // 教科→担当
+  h+='<h3 style="margin:0 0 6px;font-size:13px;">教科 → 担当教員</h3><table class="tg"><tr><th>教科</th><th>担当</th></tr>';
+  AUTO_SUBJECTS.forEach(s=>{
+    const opt=M.teachers.map(t=>`<option ${M.subjectTeacher[s]===t?'selected':''}>${t}</option>`).join('');
+    h+=`<tr><td class="sub">${s}</td><td><select data-mst="${s}">${opt}</select></td></tr>`;
+  });
+  h+='</table>';
+  // 固定枠チーム
+  h+='<h3 style="margin:14px 0 6px;font-size:13px;">固定枠の担当（カンマ区切りで複数可）</h3><table class="tg"><tr><th>枠＼学年</th>';
+  M.grades.forEach(g=>h+=`<th>${g}</th>`); h+='</tr>';
+  h+='<tr><td class="sub">学活</td>'; M.grades.forEach(g=> h+=`<td><input style="width:120px" data-hr="${g}" value="${(M.homeroom[g]||[]).join(',')}"></td>`); h+='</tr>';
+  h+='<tr><td class="sub">総合</td>'; M.grades.forEach(g=> h+=`<td><input style="width:120px" data-sg="${g}" value="${(M.sougou[g]||[]).join(',')}"></td>`); h+='</tr>';
+  h+='</table><div class="mini" style="margin-top:4px;">道徳は週ごとに③で担当を選びます。行事は教員を占有しません。</div>';
+  // 標準時数
+  h+='<h3 style="margin:14px 0 6px;font-size:13px;">標準時数（③の初期値）</h3><table class="tg"><tr><th>教科＼学年</th>';
+  M.grades.forEach(g=>h+=`<th>${g}</th>`); h+='</tr>';
+  AUTO_SUBJECTS.forEach(s=>{ h+=`<tr><td class="sub">${s}</td>`; M.grades.forEach(g=> h+=`<td><input type="number" min="0" max="30" data-sh="${g}|${s}" value="${(M.standardHours[g]&&M.standardHours[g][s])||0}"></td>`); h+='</tr>'; });
+  h+='</table>';
+  h+='<details class="help"><summary>教員一覧を編集</summary><div style="margin-top:6px"><input id="mTeachers" style="width:100%" value="'+M.teachers.join(',')+'"><div class="mini">カンマ区切り。削除すると関連設定の整合に注意。</div></div></details>';
+  b.innerHTML=h;
+  document.getElementById('mModal').style.display='flex';
+}
+function saveMasters(){
+  remember('マスタ変更');
+  const b=document.getElementById('mBody');
+  b.querySelectorAll('select[data-mst]').forEach(s=> M.subjectTeacher[s.dataset.mst]=s.value );
+  b.querySelectorAll('input[data-hr]').forEach(i=> M.homeroom[i.dataset.hr]=i.value.split(',').map(x=>x.trim()).filter(Boolean) );
+  b.querySelectorAll('input[data-sg]').forEach(i=> M.sougou[i.dataset.sg]=i.value.split(',').map(x=>x.trim()).filter(Boolean) );
+  b.querySelectorAll('input[data-sh]').forEach(i=>{ const [g,s]=i.dataset.sh.split('|'); M.standardHours[g]=M.standardHours[g]||{}; M.standardHours[g][s]=parseInt(i.value)||0; });
+  const tEl=document.getElementById('mTeachers'); if(tEl) M.teachers=tEl.value.split(',').map(x=>x.trim()).filter(Boolean);
+  didChange();
+  closeMasters(); renderAbsence(); renderTargets(); renderTT(); toast('マスタを保存しました');
+}
+function closeMasters(){ document.getElementById('mModal').style.display='none'; }
+
+/* ============================================================
+   パネル開閉・初期化
+   ============================================================ */
+function togglePanel(id){ document.getElementById(id).classList.toggle('collapsed'); }
+document.getElementById('weekTitle').oninput=()=>{ W.title=document.getElementById('weekTitle').value; markDirty(true); };
+
+W=blankWeek();
+render();
+markDirty(false);
+updateUndoButton();
+</script>
+</body>
+</html>
