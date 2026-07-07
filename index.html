@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -122,6 +122,20 @@
     border-radius:5px;padding:1px 5px;margin:0 1px;font-weight:700;color:#34405a;font-size:11px;}
   .daysep{border-left:2px solid #aeb8c7!important;}
 
+  /* 部会・委員会 */
+  table.tt th.mtgcell{background:#fbf7ff;padding:2px 1px;min-height:16px;}
+  .mtg-badge{display:inline-block;background:#f3e8ff;color:#6d28d9;border:1px solid #ddd0f0;border-radius:4px;
+    padding:0 3px;font-size:9px;font-weight:800;margin:0 1px;line-height:1.5;cursor:default;}
+  table.mtgtb td.members{font-size:11px;color:var(--ink2);text-align:left;max-width:340px;white-space:normal;}
+  table.mtgtb select{min-width:96px;}
+  table.mtgtb td.oob{background:#fff5dc;}
+
+  /* 教員負荷サマリ */
+  table.loadtb td.warm{background:var(--warn);}
+  table.loadtb td.hot{background:var(--bad);color:var(--bad-ink);font-weight:800;}
+  details.load{margin-top:10px;}
+  details.load table{margin-top:8px;}
+
   /* absence grid */
   table.abs{border-collapse:separate;border-spacing:0;font-size:11px;border:1px solid var(--bd2);border-radius:8px;overflow:hidden;background:#fff;}
   table.abs th,table.abs td{border-right:1px solid var(--bd2);border-bottom:1px solid var(--bd2);text-align:center;padding:0;}
@@ -133,6 +147,9 @@
   table.abs td.x.on:hover{background:#1f2937;}
   table.abs td.x.dis{background:var(--disabled);cursor:not-allowed;}
   table.abs td.x.dis:hover{background:var(--disabled);}
+  table.abs td.x.mtg{background:#f3e8ff;box-shadow:inset 0 0 0 1px #ddd0f0;}
+  table.abs td.x.mtg:hover{background:#e9dbfa;}
+  table.abs td.x.on.mtg{background:#334155;}
 
   /* targets */
   table.tg{border-collapse:separate;border-spacing:0;font-size:12px;border:1px solid var(--bd2);border-radius:8px;overflow:hidden;background:#fff;}
@@ -213,9 +230,18 @@
     </div>
   </div>
 
+  <!-- 部会・委員会 -->
+  <div class="panel" id="p-mtg">
+    <h2 onclick="togglePanel('p-mtg')"><span class="chev">▾</span>③ 部会・委員会（メンバーを空きコマに）</h2>
+    <div class="body">
+      <div id="mtgArea"></div>
+      <div class="hint" style="margin-top:6px;">開催コマを選ぶと、そのコマにはメンバーの授業が入らなくなります（自動生成・手動チェックの両方に効きます）。メンバーの編集は「⚙ 設定（マスタ）」から。</div>
+    </div>
+  </div>
+
   <!-- コマ数指定 -->
   <div class="panel" id="p-target">
-    <h2 onclick="togglePanel('p-target')"><span class="chev">▾</span>③ 今週の教科コマ数</h2>
+    <h2 onclick="togglePanel('p-target')"><span class="chev">▾</span>④ 今週の教科コマ数</h2>
     <div class="body">
       <div id="targetArea"></div>
       <div class="hint" style="margin-top:6px;">標準時数をプリセット済み。固定枠（総合・学活・道徳・行事）は時間割上で直接配置します。過不足が0になると生成できます。</div>
@@ -224,7 +250,7 @@
 
   <!-- 時間割 -->
   <div class="panel" id="p-tt">
-    <h2 onclick="togglePanel('p-tt')"><span class="chev">▾</span>④ 時間割（生成・手直し）</h2>
+    <h2 onclick="togglePanel('p-tt')"><span class="chev">▾</span>⑤ 時間割（生成・手直し）</h2>
     <div class="body">
       <div class="row" style="margin-bottom:10px;align-items:center;">
         <button class="primary" id="genBtn" onclick="runGenerate()">⚙ 自動生成</button>
@@ -248,9 +274,11 @@
         <span><i class="sw" style="background:var(--lock)"></i>ロック</span>
         <span><i class="sw" style="background:var(--bad)"></i>制約違反(ハード)</span>
         <span><i class="sw" style="background:var(--warn)"></i>注意(ソフト)</span>
+        <span><i class="sw" style="background:#f3e8ff;border-color:#ddd0f0"></i>部会・委員会</span>
         <span><i class="sw" style="background:var(--disabled)"></i>枠外</span>
         <span>🔒=ロック　合=合同(教員重複OK)</span>
       </div>
+      <div id="teacherLoad"></div>
     </div>
   </div>
 
@@ -265,7 +293,7 @@
     <h2>設定（マスタ）<span class="spacer" style="flex:1"></span></h2>
     <div class="mbody" id="mBody"></div>
     <div class="mfoot">
-      <span class="mini" style="margin-right:auto;">変更は「保存して閉じる」で反映。標準時数は③の初期値に使われます。</span>
+      <span class="mini" style="margin-right:auto;">変更は「保存して閉じる」で反映。標準時数は④の初期値に使われます。</span>
       <button onclick="closeMasters()">キャンセル</button>
       <button class="primary" onclick="saveMasters()">保存して閉じる</button>
     </div>
@@ -309,7 +337,16 @@ const DEFAULT_MASTERS = {
     "１A":{国語:4,社会:3,数学:4,理科:3,英語:4,保体:3,音楽:1,美術:1,技術:1,家庭:1},
     "２A":{国語:4,社会:3,数学:3,理科:4,英語:4,保体:3,音楽:1,美術:1,技術:1,家庭:1},
     "３A":{国語:3,社会:4,数学:4,理科:4,英語:4,保体:3,音楽:1,美術:1,技術:1,家庭:1}
-  }
+  },
+  // 部会・委員会。開催コマに置くと、メンバーの授業がそのコマに入らなくなる（不在と同じ扱い）。
+  committees: [
+    {id:"kyomu", name:"教務部会",   short:"教務", members:["関谷","三浦博","廣中","八柳","立中","三浦俊"]},
+    {id:"shido", name:"指導部会",   short:"指導", members:["渡會","松本","福山","金丸","生沼"]},
+    {id:"gaku1", name:"１学年部会", short:"1学",  members:["関谷","渡會","立中","三浦俊"]},
+    {id:"gaku2", name:"２学年部会", short:"2学",  members:["松本","三浦博","廣中","生沼"]},
+    {id:"gaku3", name:"３学年部会", short:"3学",  members:["福山","八柳","金丸"]},
+    {id:"unei",  name:"運営委員会", short:"運営", members:["三浦博","福山"]}
+  ]
 };
 
 /* ============================================================
@@ -337,6 +374,7 @@ function blankWeek(){
     mondayDate:"",
     periodsPerDay:[6,6,5,6,6],
     absence:{},          // "teacher|col" -> true
+    meetings:{},         // committeeId -> col（部会・委員会の開催コマ。週次）
     targets,             // grade -> {subject:count}
     doutoku,             // grade -> 道徳担当(週次)
     grid
@@ -477,12 +515,27 @@ function hardOccupants(grade, cell){
   return t?[t]:[];
 }
 
+// ---- 部会・委員会（メンバーはそのコマで授業配置がブロックされる＝不在と同じ扱い） ----
+// その列に開催が置かれている部会の一覧
+function meetingsAt(c){
+  return (M.committees||[]).filter(cm=> W.meetings && W.meetings[cm.id]===c);
+}
+// 教員 t はその列で部会により授業不可か
+function meetingBlocked(t,c){
+  return meetingsAt(c).some(cm=> (cm.members||[]).includes(t));
+}
+// 教員 t をブロックしている部会名（違反メッセージ・ツールチップ用）
+function meetingNamesFor(t,c){
+  return meetingsAt(c).filter(cm=>(cm.members||[]).includes(t)).map(cm=>cm.name);
+}
+
 /* ============================================================
    レンダリング
    ============================================================ */
 function render(){
   renderFrame();
   renderAbsence();
+  renderMeetings();
   renderTargets();
   renderTT();
 }
@@ -500,7 +553,7 @@ function renderFrame(){
     const l = document.createElement('label'); l.className='fld';
     l.innerHTML = `${d}曜`;
     const inp = document.createElement('input'); inp.type='number'; inp.min=0; inp.max=PERIODS; inp.value=W.periodsPerDay[i];
-    inp.oninput = ()=>{ let v=Math.max(0,Math.min(PERIODS,parseInt(inp.value)||0)); if(v===W.periodsPerDay[i])return; remember(`${d}曜のコマ数`); W.periodsPerDay[i]=v; didChange(); renderAbsence(); renderTargets(); renderTT(); };
+    inp.oninput = ()=>{ let v=Math.max(0,Math.min(PERIODS,parseInt(inp.value)||0)); if(v===W.periodsPerDay[i])return; remember(`${d}曜のコマ数`); W.periodsPerDay[i]=v; didChange(); renderAbsence(); renderMeetings(); renderTargets(); renderTT(); };
     l.appendChild(inp); el.appendChild(l);
   });
 }
@@ -518,8 +571,10 @@ function renderAbsence(){
     for(let c=0;c<NCOL;c++){
       const act = isActive(c);
       const on = W.absence[t+'|'+c];
+      const mtg = act && meetingBlocked(t,c);
+      const tip = mtg ? ` title="${esc(meetingNamesFor(t,c).join('・'))}のため授業不可"` : '';
       const sep = colPeriod(c)===1 && c>0 ? ' daysep':'';
-      h += `<td class="x${on?' on':''}${act?'':' dis'}${sep}" data-t="${t}" data-c="${c}"></td>`;
+      h += `<td class="x${on?' on':''}${act?'':' dis'}${mtg?' mtg':''}${sep}" data-t="${t}" data-c="${c}"${tip}></td>`;
     }
     h += '</tr>';
   });
@@ -527,6 +582,36 @@ function renderAbsence(){
   host.innerHTML = h;
   host.querySelectorAll('td.x:not(.dis)').forEach(td=>{
     td.onclick=()=>{ const k=td.dataset.t+'|'+td.dataset.c; remember('不在コマ'); if(W.absence[k])delete W.absence[k]; else W.absence[k]=true; didChange(); td.classList.toggle('on'); renderTT(); };
+  });
+}
+
+// 部会・委員会パネル（開催コマの選択UI）
+function renderMeetings(){
+  const host = document.getElementById('mtgArea'); if(!host) return;
+  let h = '<table class="tg mtgtb"><tr><th>部会・委員会</th><th>メンバー</th><th>開催コマ</th></tr>';
+  (M.committees||[]).forEach(cm=>{
+    const cur = (W.meetings && W.meetings[cm.id]!=null) ? W.meetings[cm.id] : -1;
+    const oob = cur>=0 && !isActive(cur);   // 枠外（コマ数変更で外れた等）
+    let opt = `<option value="-1">— なし —</option>`;
+    for(let c=0;c<NCOL;c++){
+      const label = `${DAYS[colDay(c)]}${colPeriod(c)}限`;
+      const dis = (isActive(c)||c===cur) ? '' : ' disabled';
+      opt += `<option value="${c}"${c===cur?' selected':''}${dis}>${label}${(c===cur&&oob)?'（枠外）':''}</option>`;
+    }
+    h += `<tr><td class="sub">${esc(cm.name)}</td><td class="members">${(cm.members||[]).map(esc).join('・')}</td>`+
+         `<td class="${oob?'oob':''}"><select data-mtg="${cm.id}">${opt}</select></td></tr>`;
+  });
+  h += '</table>';
+  host.innerHTML = h;
+  host.querySelectorAll('select[data-mtg]').forEach(sel=>{
+    sel.onchange = ()=>{
+      remember('部会の開催コマ');
+      const v = parseInt(sel.value);
+      if(!W.meetings) W.meetings = {};
+      if(v<0) delete W.meetings[sel.dataset.mtg]; else W.meetings[sel.dataset.mtg] = v;
+      didChange();
+      renderAbsence(); renderMeetings(); renderTT();
+    };
   });
 }
 
@@ -608,6 +693,18 @@ function renderTT(){
   h+='</tr><tr><th class="grade">&nbsp;</th>';
   for(let c=0;c<NCOL;c++){ const sep=colPeriod(c)===1&&c>0?' daysep':''; h+=`<th class="${sep}">${colPeriod(c)}</th>`; }
   h+='</tr>';
+  // 部会・委員会の行（1つでも配置されていれば表示）
+  const hasMtg=(M.committees||[]).some(cm=> W.meetings && W.meetings[cm.id]!=null);
+  if(hasMtg){
+    h+='<tr><th class="grade" style="font-size:10px;">部会</th>';
+    for(let c=0;c<NCOL;c++){
+      const sep=colPeriod(c)===1&&c>0?' daysep':'';
+      const ms=meetingsAt(c);
+      const badges=ms.map(m=>`<span class="mtg-badge" title="${esc(m.name)}：${(m.members||[]).map(esc).join('・')}">${esc(m.short||m.name)}</span>`).join('');
+      h+=`<th class="mtgcell${sep}">${badges||'&nbsp;'}</th>`;
+    }
+    h+='</tr>';
+  }
   M.grades.forEach(g=>{
     h+=`<tr><th class="grade">${g}</th>`;
     W.grid[g].forEach((cell,c)=>{
@@ -633,7 +730,34 @@ function renderTT(){
     td.ondrop=(e)=>{ e.preventDefault(); td.classList.remove('dragover'); const [g2,c2]=e.dataTransfer.getData('text').split(','); swapCells(g2,parseInt(c2),td.dataset.g,parseInt(td.dataset.c)); };
   });
   validate();
+  renderTeacherLoad();
   highlightFocus();
+}
+
+// 教員別の週間コマ数（名目担当も含む＝occupantsベース）。日ごとの持ちコマと週合計を一覧。
+function renderTeacherLoad(){
+  const host=document.getElementById('teacherLoad'); if(!host) return;
+  const wasOpen=host.querySelector('details')?.open;
+  let h=`<details class="help load"${wasOpen?' open':''}><summary>教員別の週間コマ数（バランス確認）</summary>`;
+  h+='<table class="tg loadtb"><tr><th>教員</th>';
+  DAYS.forEach(d=> h+=`<th>${d}</th>`); h+='<th>週計</th></tr>';
+  M.teachers.forEach(t=>{
+    let wk=0, cells='';
+    DAYS.forEach((d,di)=>{
+      let n=0;
+      for(let pp=0;pp<PERIODS;pp++){
+        const c=di*PERIODS+pp; if(!isActive(c)) continue;
+        let has=false;
+        M.grades.forEach(g=>{ if(occupants(g,W.grid[g][c]).includes(t)) has=true; });
+        if(has) n++;
+      }
+      wk+=n;
+      cells+=`<td class="${n>=5?'hot':(n===4?'warm':'')}">${n||''}</td>`;
+    });
+    h+=`<tr><td class="sub">${esc(t)}</td>${cells}<td><b>${wk}</b></td></tr>`;
+  });
+  h+='</table><div class="mini" style="margin-top:4px;">黄＝1日4コマ、赤＝5コマ以上。名目上の担当（学活・道徳）も数に含みます。</div></details>';
+  host.innerHTML=h;
 }
 
 /* ============================================================
@@ -741,11 +865,15 @@ function validate(){
       hardOccupants(g,cell).forEach(t=>{
         (used[t]=used[t]||[]).push({g,goudou:cell.goudou});
       });
-      // 不在違反
+      // 不在違反・部会拘束違反
       hardOccupants(g,cell).forEach(t=>{
         if(W.absence[t+'|'+c]){
           const td=tds[g+'|'+c]; if(td)td.classList.add('bad');
           pushUnique(hard,`${DAYS[colDay(c)]}${colPeriod(c)}限：${g} ${cell.sub} の担当 ${t} が不在です`);
+        }
+        if(meetingBlocked(t,c)){
+          const td=tds[g+'|'+c]; if(td)td.classList.add('bad');
+          pushUnique(hard,`${DAYS[colDay(c)]}${colPeriod(c)}限：${g} ${cell.sub} の担当 ${t} は ${meetingNamesFor(t,c).join('・')} に出席のため配置できません`);
         }
       });
     });
@@ -759,7 +887,7 @@ function validate(){
       }
     });
   }
-  // ハード: コマ数不一致（過不足）→ ③で表示。ここでは省略。
+  // ハード: コマ数不一致（過不足）→ ④で表示。ここでは省略。
 
   // 5教科の同日重複は自動生成ではハード禁止。手入力ロック済みだけ例外として注意表示。
   M.grades.forEach(g=>{
@@ -784,6 +912,31 @@ function validate(){
       });
     });
   });
+
+  // ソフト: 部会が枠外コマに設定されたまま（コマ数変更などで外れた場合）
+  (M.committees||[]).forEach(cm=>{
+    const c = W.meetings && W.meetings[cm.id];
+    if(c!=null && !isActive(c)) pushUnique(soft,`${cm.name} が枠外（${DAYS[colDay(c)]}${colPeriod(c)}限）に設定されています`);
+  });
+
+  // ソフト: 部会・不在で授業できる教員が足りないコマ（このままでは自動生成できない）
+  for(let c=0;c<NCOL;c++){
+    if(!isActive(c)) continue;
+    const blockedSet=new Set();
+    meetingsAt(c).forEach(cm=>(cm.members||[]).forEach(t=>blockedSet.add(t)));
+    if(!blockedSet.size) continue;
+    const avail=new Set(Object.values(M.subjectTeacher).filter(t=>!blockedSet.has(t) && !W.absence[t+'|'+c]));
+    let needCells=0;
+    M.grades.forEach(g=>{
+      const cell=W.grid[g][c];
+      if(FIXED_SUBJECTS.includes(cell.sub)) return;      // 固定枠は教員不要（名目/チーム扱いは別途）
+      if(cell.locked && cell.sub) return;                // ロック済みは配置済み
+      needCells++;
+    });
+    if(avail.size<needCells){
+      pushUnique(soft,`${DAYS[colDay(c)]}${colPeriod(c)}限：部会・不在の影響で授業できる先生が ${avail.size}人（${needCells}クラス分必要）。行事・学活などの固定枠にするか、部会のコマを変えてください`);
+    }
+  }
 
   // ソフト: 朝1限の芸体・英語 / 5教科以外の同日同教科重複
   M.grades.forEach(g=>{
@@ -855,6 +1008,14 @@ function generate(){
   const cells=[];
   M.grades.forEach((g,gi)=> base[g].forEach((cell,c)=>{ if(isActive(c)&&!cell.sub) cells.push({g,gi,c}); }) );
 
+  // 部会・委員会による教員ブロック（列ごとにプリコンピュート。週内で不変）
+  const mtgBlock=[];
+  for(let c=0;c<NCOL;c++){
+    const set=new Set();
+    meetingsAt(c).forEach(cm=> (cm.members||[]).forEach(t=>set.add(t)) );
+    mtgBlock.push(set);
+  }
+
   let best=null, bestScore=Infinity, bestDepth=-1, restarts=0;
   const RESTARTS=700, NODE_BUDGET=9000;
   const t0=performance.now();
@@ -871,6 +1032,7 @@ function generate(){
     function canPlaceSubject(g,c,s){
       const t=M.subjectTeacher[s];
       if(t && W.absence[t+'|'+c]) return false;
+      if(t && mtgBlock[c].has(t)) return false;
       if(t && colT[c].has(t)) return false;
       if(hasFiveSubjectOnDay(work,g,c,s)) return false;
       return true;
@@ -986,17 +1148,18 @@ function analyzeUnfilled(grid){
       if(got<need){
         const t=M.subjectTeacher[s];
         // どこが埋まっているか
-        let blocked=0,absent=0,sameDay=0;
+        let blocked=0,absent=0,sameDay=0,meeting=0;
         for(let c=0;c<NCOL;c++){
           if(!isActive(c)||grid[g][c].sub)continue;
           if(W.absence[t+'|'+c]) absent++;
+          else if(meetingBlocked(t,c)) meeting++;
           else if(hasFiveSubjectOnDay(grid,g,c,s)) sameDay++;
           else {
             let busy=false; M.grades.forEach(g2=>{ if(g2!==g&&hardOccupants(g2,grid[g2][c]).includes(t))busy=true; });
             if(busy)blocked++;
           }
         }
-        list.push({g,s,short:need-got,t,blocked,absent,sameDay});
+        list.push({g,s,short:need-got,t,blocked,absent,sameDay,meeting});
       }
     });
   });
@@ -1005,7 +1168,7 @@ function analyzeUnfilled(grid){
 function showReasons(list){
   if(!list||!list.length) return;
   let h='<div class="reasons"><b>配置しきれなかったコマ：</b><ul>';
-  list.forEach(u=>{ h+=`<li>${u.g} の【${u.s}】が ${u.short}コマ不足（担当：${u.t}／他学年で埋まり ${u.blocked}枠・不在 ${u.absent}枠・5教科同日上限 ${u.sameDay||0}枠）</li>`; });
+  list.forEach(u=>{ h+=`<li>${u.g} の【${u.s}】が ${u.short}コマ不足（担当：${u.t}／他学年で埋まり ${u.blocked}枠・不在 ${u.absent}枠・部会 ${u.meeting||0}枠・5教科同日上限 ${u.sameDay||0}枠）</li>`; });
   h+='</ul><span class="mini">固定枠や不在を見直すか、コマ数を調整してください。気に入った所はロックして再生成も有効です。</span></div>';
   document.getElementById('reasons').innerHTML=h;
 }
@@ -1068,6 +1231,7 @@ async function saveWeek(){
   markDirty(false);
 }
 async function loadWeek(){
+  if(isDirty && !confirm('未保存の変更があります。破棄してファイルを読み込みますか？')) return;
   if(window.showOpenFilePicker){
     try{
       const [h]=await window.showOpenFilePicker({types:[{description:'JSON',accept:{'application/json':['.json']}}]});
@@ -1080,6 +1244,9 @@ async function loadWeek(){
 }
 function applyPack(p){
   if(p.masters) M=p.masters; if(p.week) W=p.week;
+  // 後方互換：部会機能より前に保存されたデータを補完
+  if(!M.committees) M.committees=clone(DEFAULT_MASTERS.committees);
+  if(!W.meetings) W.meetings={};
   document.getElementById('weekTitle').value=W.title||'';
   undoStack=[]; updateUndoButton(); markDirty(false);
   render(); toast('読み込みました');
@@ -1105,9 +1272,15 @@ function openMasters(){
   M.grades.forEach(g=>h+=`<th>${g}</th>`); h+='</tr>';
   h+='<tr><td class="sub">学活</td>'; M.grades.forEach(g=> h+=`<td><input style="width:120px" data-hr="${g}" value="${(M.homeroom[g]||[]).join(',')}"></td>`); h+='</tr>';
   h+='<tr><td class="sub">総合</td>'; M.grades.forEach(g=> h+=`<td><input style="width:120px" data-sg="${g}" value="${(M.sougou[g]||[]).join(',')}"></td>`); h+='</tr>';
-  h+='</table><div class="mini" style="margin-top:4px;">道徳は週ごとに③で担当を選びます。行事は教員を占有しません。</div>';
+  h+='</table><div class="mini" style="margin-top:4px;">道徳は週ごとに④で担当を選びます。行事は教員を占有しません。</div>';
+  // 部会・委員会のメンバー
+  h+='<h3 style="margin:14px 0 6px;font-size:13px;">部会・委員会のメンバー（カンマ・読点区切り）</h3><table class="tg">';
+  (M.committees||[]).forEach((cm,i)=>{
+    h+=`<tr><td class="sub">${esc(cm.name)}</td><td><input style="width:300px" data-cm="${i}" value="${esc((cm.members||[]).join('，'))}"></td></tr>`;
+  });
+  h+='</table><div class="mini" style="margin-top:4px;">部会の開催コマは週ごとに③で選びます。メンバーはそのコマに授業が入らなくなります。</div>';
   // 標準時数
-  h+='<h3 style="margin:14px 0 6px;font-size:13px;">標準時数（③の初期値）</h3><table class="tg"><tr><th>教科＼学年</th>';
+  h+='<h3 style="margin:14px 0 6px;font-size:13px;">標準時数（④の初期値）</h3><table class="tg"><tr><th>教科＼学年</th>';
   M.grades.forEach(g=>h+=`<th>${g}</th>`); h+='</tr>';
   AUTO_SUBJECTS.forEach(s=>{ h+=`<tr><td class="sub">${s}</td>`; M.grades.forEach(g=> h+=`<td><input type="number" min="0" max="30" data-sh="${g}|${s}" value="${(M.standardHours[g]&&M.standardHours[g][s])||0}"></td>`); h+='</tr>'; });
   h+='</table>';
@@ -1122,9 +1295,20 @@ function saveMasters(){
   b.querySelectorAll('input[data-hr]').forEach(i=> M.homeroom[i.dataset.hr]=i.value.split(',').map(x=>x.trim()).filter(Boolean) );
   b.querySelectorAll('input[data-sg]').forEach(i=> M.sougou[i.dataset.sg]=i.value.split(',').map(x=>x.trim()).filter(Boolean) );
   b.querySelectorAll('input[data-sh]').forEach(i=>{ const [g,s]=i.dataset.sh.split('|'); M.standardHours[g]=M.standardHours[g]||{}; M.standardHours[g][s]=parseInt(i.value)||0; });
+  b.querySelectorAll('input[data-cm]').forEach(i=>{
+    const idx=parseInt(i.dataset.cm);
+    if(M.committees && M.committees[idx]) M.committees[idx].members=i.value.split(/[,，、\s]+/).map(x=>x.trim()).filter(Boolean);
+  });
   const tEl=document.getElementById('mTeachers'); if(tEl) M.teachers=tEl.value.split(',').map(x=>x.trim()).filter(Boolean);
+  // 部会メンバーの誤字チェック：名簿にない名前はブロックが効かない（サイレント無効）ため必ず知らせる
+  {
+    const known=new Set(M.teachers.concat(M.doutokuExtra||[]));
+    const unknown=[];
+    (M.committees||[]).forEach(cm=> (cm.members||[]).forEach(t=>{ if(!known.has(t)) unknown.push(cm.name+'：'+t); }) );
+    if(unknown.length) alert('【注意】名簿（教員一覧＋道徳担当）にない名前が部会メンバーにあります。\nこの名前には部会の拘束が効きません（誤字の可能性）。\n\n'+unknown.join('\n'));
+  }
   didChange();
-  closeMasters(); renderAbsence(); renderTargets(); renderTT(); toast('マスタを保存しました');
+  closeMasters(); renderAbsence(); renderMeetings(); renderTargets(); renderTT(); toast('マスタを保存しました');
 }
 function closeMasters(){ document.getElementById('mModal').style.display='none'; }
 
@@ -1133,6 +1317,8 @@ function closeMasters(){ document.getElementById('mModal').style.display='none';
    ============================================================ */
 function togglePanel(id){ document.getElementById(id).classList.toggle('collapsed'); }
 document.getElementById('weekTitle').oninput=()=>{ W.title=document.getElementById('weekTitle').value; markDirty(true); };
+// 未保存のまま閉じようとしたら確認
+window.addEventListener('beforeunload',(e)=>{ if(isDirty){ e.preventDefault(); e.returnValue=''; } });
 
 W=blankWeek();
 render();
@@ -1141,4 +1327,5 @@ updateUndoButton();
 </script>
 </body>
 </html>
+
 
