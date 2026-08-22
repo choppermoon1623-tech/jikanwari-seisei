@@ -104,7 +104,7 @@
   table.tt th{background:#f6f8fb;font-weight:800;padding:5px 4px;color:var(--ink2);position:sticky;}
   table.tt th.day{background:#eef4fb;color:#17202c;letter-spacing:0;}
   table.tt th.grade{background:#f1f5f9;min-width:40px;position:sticky;left:0;z-index:3;box-shadow:1px 0 0 var(--bd2);}
-  td.cell{width:44px;height:33px;cursor:pointer;position:relative;user-select:none;background:#fff;font-weight:700;color:#263241;transition:background .12s,box-shadow .12s,color .12s;}
+  td.cell{width:44px;height:42px;cursor:pointer;position:relative;user-select:none;background:#fff;font-weight:700;color:#263241;transition:background .12s,box-shadow .12s,color .12s;}
   td.cell:hover{background:#f2f7ff;box-shadow:inset 0 0 0 1px #bfd4ff;}
   td.cell.disabled{background:var(--disabled);cursor:not-allowed;color:#bcc3cd;}
   td.cell.disabled:hover{box-shadow:none;}
@@ -116,6 +116,10 @@
   td.cell.focus{outline:2.5px solid var(--acc);outline-offset:-2px;z-index:2;box-shadow:0 0 0 3px var(--ring);}
   td.cell .lk{position:absolute;top:1px;right:2px;font-size:8px;color:var(--lock-ink);}
   td.cell .gd{position:absolute;top:1px;left:2px;font-size:8px;font-weight:800;color:var(--acc);}
+  td.cell .sj{display:block;line-height:1.15;}
+  td.cell .tn{display:block;font-size:9px;font-weight:600;color:#6b7886;line-height:1.15;margin-top:1px;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
+  td.cell.fixed .tn{color:#5b7fbf;}
+  td.cell.bad .tn{color:var(--bad-ink);}
   .kbd-cheat{font-size:11px;color:var(--ink2);background:#f8fafc;border:1px solid var(--bd2);
     border-radius:8px;padding:9px 12px;margin-bottom:10px;line-height:2;}
   .kbd-cheat b{display:inline-block;min-width:16px;text-align:center;background:#fff;border:1px solid var(--bd);border-bottom-width:2px;
@@ -161,7 +165,9 @@
   /* picker popover */
   #picker{position:absolute;z-index:100;background:#fff;border:1px solid var(--bd2);border-radius:8px;box-shadow:var(--sh-lg);padding:11px;display:none;width:244px;}
   #picker .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px;}
-  #picker .grid button{padding:8px 0;font-size:12px;border-radius:7px;box-shadow:none;}
+  #picker .grid button{padding:6px 0;font-size:12px;border-radius:7px;box-shadow:none;line-height:1.2;}
+  #picker .grid button .tn{display:block;font-size:9px;font-weight:600;color:#6b7886;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #picker .grid button.fx .tn{color:#5b7fbf;}
   #picker .grid button.fx{background:var(--fixed);border-color:var(--fixed-bd);color:#2251a5;}
   #picker .opts{display:flex;gap:12px;align-items:center;border-top:1px solid var(--bd2);padding-top:9px;margin-top:3px;font-size:11px;font-weight:600;color:var(--ink2);}
   #picker .opts label{display:flex;align-items:center;gap:4px;cursor:pointer;}
@@ -192,7 +198,7 @@
     header .title-input{width:100%;}
     .status-strip{grid-template-columns:repeat(2,minmax(120px,1fr));}
     .wrap{padding:12px 10px 56px;}
-    td.cell{width:40px;height:32px;}
+    td.cell{width:40px;height:40px;}
   }
 </style>
 </head>
@@ -713,8 +719,12 @@ function renderTT(){
       let cls='cell';
       if(FIXED_SUBJECTS.includes(cell.sub)) cls+=' fixed';
       if(cell.locked) cls+=' locked';
-      h+=`<td class="${cls}${sep}" data-g="${g}" data-c="${c}" draggable="true">`+
-         `${cell.sub||''}${cell.locked?'<span class="lk">🔒</span>':''}${cell.goudou?'<span class="gd">合</span>':''}</td>`;
+      const tns=occupants(g,cell), tn=tns.join('・');
+      const tip=cell.sub?`${cell.sub}${tn?'／'+tn:''}`:'';
+      h+=`<td class="${cls}${sep}" data-g="${g}" data-c="${c}" draggable="true"${tip?` title="${esc(tip)}"`:''}>`+
+         `${cell.sub?`<span class="sj">${esc(cell.sub)}</span>`:''}`+
+         `${tn?`<span class="tn">${esc(tn)}</span>`:''}`+
+         `${cell.locked?'<span class="lk">🔒</span>':''}${cell.goudou?'<span class="gd">合</span>':''}</td>`;
     });
     h+='</tr>';
   });
@@ -823,9 +833,10 @@ function openPicker(td){
   const cell=W.grid[pickTarget.g][pickTarget.c];
   const p=document.getElementById('picker');
   let h='<div class="grid">';
-  AUTO_SUBJECTS.forEach(s=> h+=`<button onclick="setCell('${s}')">${s}</button>`);
+  const pickTn=(s)=>{ const a=occupants(pickTarget.g,{sub:s}); if(!a.length) return ''; return esc(a.length>1?a[0]+'他':a[0]); };
+  AUTO_SUBJECTS.forEach(s=>{ const t=pickTn(s); h+=`<button onclick="setCell('${s}')">${s}${t?`<span class="tn">${t}</span>`:''}</button>`; });
   h+='</div><div class="grid">';
-  FIXED_SUBJECTS.forEach(s=> h+=`<button class="fx" onclick="setCell('${s}')">${s}</button>`);
+  FIXED_SUBJECTS.forEach(s=>{ const t=pickTn(s); h+=`<button class="fx" onclick="setCell('${s}')">${s}${t?`<span class="tn">${t}</span>`:''}</button>`; });
   h+='</div>';
   h+=`<div class="opts">`+
      `<label><input type="checkbox" id="pkLock" ${cell.locked?'checked':''}>🔒ロック</label>`+
