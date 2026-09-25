@@ -249,6 +249,10 @@
   <div class="panel" id="p-target">
     <h2 onclick="togglePanel('p-target')"><span class="chev">▾</span>④ 今週の教科コマ数</h2>
     <div class="body">
+      <div class="row" style="margin-bottom:8px;align-items:center;">
+        <button onclick="balanceTargets()">⚖ コマ数を整える</button>
+        <span class="mini">過不足が0になるよう上限内で自動調整（5教科5・保体4・音美2・技家は1〜2年2／3年1）</span>
+      </div>
       <div id="targetArea"></div>
       <div class="hint" style="margin-top:6px;">標準時数をプリセット済み。固定枠（総合・学活・道徳・行事）は時間割上で直接配置します。過不足が0になると生成できます。</div>
     </div>
@@ -689,6 +693,58 @@ function updateRecon(){
   const btn=document.getElementById('genBtn');
   if(btn){ btn.disabled=!allOk; }
   return allOk;
+}
+
+// 「コマ数を整える」：各学年の教科コマ数を上限内で増減し、過不足を0にする
+function gradeNumber(g){
+  const m=String(g).normalize('NFKC').match(/[1-3]/);
+  return m ? +m[0] : M.grades.indexOf(g)+1;
+}
+function targetCap(g,s){
+  if(isFiveSubject(s)) return 5;
+  if(s==="保体") return 4;
+  if(s==="音楽"||s==="美術") return 2;
+  if(s==="技術"||s==="家庭") return gradeNumber(g)>=3 ? 1 : 2;
+  return 30;
+}
+function balanceTargets(){
+  const msgs=[], fails=[];
+  const next={};
+  M.grades.forEach(g=>{
+    const t={}; AUTO_SUBJECTS.forEach(s=> t[s]=W.targets[g][s]||0 );
+    const std=(M.standardHours&&M.standardHours[g])||{};
+    // 手でロック済みのコマ数は下回らない
+    const minOf={}; AUTO_SUBJECTS.forEach(s=> minOf[s]=0 );
+    W.grid[g].forEach((cell,c)=>{ if(isActive(c)&&cell.locked&&AUTO_SUBJECTS.includes(cell.sub)) minOf[cell.sub]++; });
+    AUTO_SUBJECTS.forEach(s=>{ const cap=targetCap(g,s); if(minOf[s]>cap) minOf[s]=cap; t[s]=Math.min(cap,Math.max(minOf[s],t[s])); });
+    const slots=reconFor(g).slots;
+    let sum=AUTO_SUBJECTS.reduce((a,s)=>a+t[s],0);
+    // 標準時数からの差が大きい教科から減らし、小さい教科から増やす
+    const over=s=> t[s]-(std[s]||0);
+    while(sum>slots){
+      const c=AUTO_SUBJECTS.filter(s=>t[s]>minOf[s]);
+      if(!c.length) break;
+      c.sort((a,b)=> over(b)-over(a) || t[b]/targetCap(g,b)-t[a]/targetCap(g,a));
+      t[c[0]]--; sum--;
+    }
+    while(sum<slots){
+      const c=AUTO_SUBJECTS.filter(s=>t[s]<targetCap(g,s));
+      if(!c.length) break;
+      c.sort((a,b)=> over(a)-over(b) || t[a]/targetCap(g,a)-t[b]/targetCap(g,b));
+      t[c[0]]++; sum++;
+    }
+    if(sum!==slots) fails.push(`${g}：${sum>slots?'ロック済みが多く':'上限いっぱいでも'}${Math.abs(sum-slots)}コマ${sum>slots?'多い':'足りない'}`);
+    const ch=AUTO_SUBJECTS.filter(s=>t[s]!==(W.targets[g][s]||0)).map(s=>`${s}${(W.targets[g][s]||0)}→${t[s]}`);
+    if(ch.length) msgs.push(`${g}：${ch.join('、')}`);
+    next[g]=t;
+  });
+  if(!msgs.length){ toast(fails.length?fails.join(' ／ '):'コマ数はすでに整っています'); return; }
+  remember('コマ数を整える');
+  M.grades.forEach(g=> W.targets[g]=next[g] );
+  didChange(); renderTargets(); validate();
+  toast(fails.length ? '一部調整できません：'+fails.join(' ／ ') : '整えました');
+  const body=msgs.join('\n')+(fails.length?'\n\n⚠ '+fails.join('\n⚠ '):'');
+  setTimeout(()=>alert('コマ数を整えました（元に戻すで取り消せます）\n\n'+body),50);
 }
 
 function renderTT(){
